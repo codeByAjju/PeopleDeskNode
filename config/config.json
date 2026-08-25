@@ -1,0 +1,9 @@
+{
+  "development": {
+    "username": "root",
+    "password": "",
+    "database": "hrms_db",
+    "host": "localhost",
+    "dialect": "mysql"
+  }
+}
