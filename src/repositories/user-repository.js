@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from '../services/jwt.js';
 
 
-const { user } = models;
+const { User } = models;
 export default {
   async createHashPassword(password) {
     try {
@@ -22,7 +22,7 @@ export default {
       const bodyData = req.body;
 
       // Check if email already exists
-      const existingUser = await user.findOne({ where: { email: bodyData.email } });
+      const existingUser = await User.findOne({ where: { email: bodyData.email } });
       if (existingUser) {
         const error = new Error('Email already registered. Please use a different email or try logging in.');
         error.status = 400;
@@ -32,7 +32,7 @@ export default {
       const hashPassword = await this.createHashPassword(bodyData.password);
       bodyData.password = hashPassword;
       bodyData.role = 'user'
-      const result = await user.create(bodyData);
+      const result = await User.create(bodyData);
       if (result)
         return result;
       return false;
@@ -43,14 +43,14 @@ export default {
   },
   async signin(request) {
     const { email, password } = request.body;
-    const havingEmail = await user.findOne({ where: { email: email } });
+    const havingEmail = await User.findOne({ where: { email: email } });
     if (havingEmail) {
       const isPasswordMatch = await this.compareUserPassword(password, havingEmail.password);
       if (isPasswordMatch) {
         const { ...userData } = havingEmail.get();
         const token = jwt.createToken(userData)
         userData.token = token;
-        user.update({ token: token }, { where: { id: havingEmail.id } });
+        User.update({ token: token }, { where: { id: havingEmail.id } });
         return { token, ...userData };
       } else {
         // Password doesn't match
@@ -74,7 +74,7 @@ export default {
       const userId = updateData.id || updateData.userId;
       const lookup = userId ? { id: userId } : { email: updateData.email };
 
-      const userRecord = await user.findOne({ where: lookup });
+      const userRecord = await User.findOne({ where: lookup });
       if (!userRecord) {
         return { status: false, msg: "User not found" };
       }
@@ -99,7 +99,7 @@ export default {
     try {
       const havingWhere = where.email ? { email: where.email } : {};
       const attributes = { exclude: ["password", "verifyToken"] };
-      const userData = await user.findOne({
+      const userData = await User.findOne({
         where: {
           ...where,
         },

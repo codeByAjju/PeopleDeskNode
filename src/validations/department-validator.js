@@ -34,17 +34,7 @@ const createSchema = Joi.object({
         .default('active')
         .messages({
             'any.only': 'DEPARTMENT_STATUS_INVALID',
-        }),
-        companyId: Joi.number()
-        .integer()
-        .positive()
-        .required()
-        .messages({
-            'any.required': 'COMPANY_ID_REQUIRED',
-            'number.base': 'COMPANY_ID_INVALID',
-            'number.integer': 'COMPANY_ID_INVALID',
-            'number.positive': 'COMPANY_ID_INVALID',
-        }),
+        })
 });
 
 const updateSchema = Joi.object({

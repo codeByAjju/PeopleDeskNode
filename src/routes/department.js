@@ -12,25 +12,47 @@ const { validateMiddleware, resourceAccessMiddleware, companyMiddleware, mediaMi
 router.post(
   '/department/create',
   authValidateRequest,
-  resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),
+  resourceAccessMiddleware(['super_admin', 'admin']),
   validateMiddleware({ schema: departmentValidations.createSchema }),
-  departmentMiddleware.checkCompanyIdExist,
   departmentMiddleware.checkDepartmentNameExist,
   departmentController.create,
 );
-
-router.get(
-  '/department/list/:companyId',
+router.post(
+  '/department/bulk-department-create',
   authValidateRequest,
-  resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),
-  departmentMiddleware.checkCompanyIdExist,
-  departmentController.getAllDepartmentByCompanyId,
+  resourceAccessMiddleware(['super_admin', 'admin']),
+  departmentController.createBulkDepartment,
 );
+
 router.get(
   '/department/list',
   authValidateRequest,
-  resourceAccessMiddleware(['super_admin', 'admin']),
+  resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),
   departmentController.getAllDepartment,
 );
 
+router.get(
+  '/department/:id',
+  authValidateRequest,
+  resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),
+  departmentMiddleware.checkDepartmentIdExist,
+  departmentController.getDepartmentById,
+)
+
+router.put(
+  '/department-update/:id',
+  authValidateRequest,
+  resourceAccessMiddleware(['super_admin', 'admin']),
+  departmentMiddleware.checkDepartmentIdExist,
+  departmentMiddleware.checkUpdateDepartmentNameExist,
+  departmentController.updateDepartment,
+)
+
+router.patch(
+  '/department-delete/:id',
+  authValidateRequest,
+  resourceAccessMiddleware(['super_admin', 'admin']),
+  departmentMiddleware.checkDepartmentIdExist,
+  departmentController.deleteDepartment,
+)
 export default router;
