@@ -32,6 +32,7 @@ export default (sequelize, DataTypes) => {
                     'hr_manager',
                     'manager',
                     'employee',
+                    'user'
                 ),
                 allowNull: false,
             },
