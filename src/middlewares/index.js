@@ -4,6 +4,7 @@ import resourceAccessMiddleware from './resource-access-middleware.js';
 import companyMiddleware from './company-middleware.js';
 import mediaMiddleware from './media.middleware.js';
 import departmentMiddleware from './department-middleware.js';
+import designationMiddleware from './designation-middleware.js';
 export default {
     authValidateRequest,
     validateMiddleware,
@@ -11,4 +12,5 @@ export default {
     companyMiddleware,
     mediaMiddleware,
     departmentMiddleware,
+    designationMiddleware,
 };

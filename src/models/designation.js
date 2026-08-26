@@ -4,6 +4,14 @@ export default (sequelize, DataTypes) => {
   const Designation = sequelize.define(
     'Designation',
     {
+      departmentId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'departments',
+          key: 'id',
+        },
+      },
       name: {
         type: DataTypes.STRING(100),
         allowNull: false,
@@ -11,7 +19,7 @@ export default (sequelize, DataTypes) => {
 
       code: {
         type: DataTypes.STRING(50),
-        allowNull: false,
+        allowNull: true,
         unique: true,
       },
 
@@ -23,6 +31,7 @@ export default (sequelize, DataTypes) => {
       level: {
         type: DataTypes.INTEGER,
         allowNull: true,
+        defaultValue: 1
       },
 
       status: {

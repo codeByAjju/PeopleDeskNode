@@ -193,11 +193,6 @@ const updateSchema = Joi.object({
     .max(255),
 });
 
-const detailAndDeleteSchema = {
-  params: Joi.object().keys({
-    id: Joi.number().integer().greater(0).required(),
-  }),
-};
 const updateCompanySchema = {
   params: Joi.object({
     id: Joi.number()
