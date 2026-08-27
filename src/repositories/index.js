@@ -6,7 +6,7 @@ import designationRepository from './designation-repository.js';
 import countryRepository from './country-repository.js';
 import stateRepository from './state-repository.js';
 import cityRepository from './city-repository.js';
-
+import branchRepository from './branch-repository.js';
 export default {
     mediaRepository,
     userRepository,
@@ -16,4 +16,5 @@ export default {
     countryRepository,
     stateRepository,
     cityRepository,
+    branchRepository,
 };

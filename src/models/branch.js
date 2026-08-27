@@ -37,7 +37,6 @@ export default (sequelize, DataTypes) => {
           key: 'id',
         },
       },
-
       cityId: {
         type: DataTypes.INTEGER,
         allowNull: true,

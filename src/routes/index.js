@@ -6,10 +6,11 @@ import designation from './designation.js';
 import country from './country.js';
 import state from './state.js';
 import city from './city.js';
+import branch from './branch.js';
 import HttpStatus from 'http-status';
 
 const register = (app) => {
-    app.use('/', [user, media, company, department, designation, country, state, city]);
+    app.use('/', [user, media, company, department, designation, country, state, city, branch]);
     app.use((error, req, res, next) => {
         console.error(error);
         return res.status(HttpStatus.BAD_REQUEST).json({
