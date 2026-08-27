@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/index.js",
     "dev": "npx nodemon src/index.js",
-    "seed": "npx sequelize db:seed:all --seeders-path config/seeders"
+    "seed": "npx sequelize db:seed:all --seeders-path config/seeders",
+    "seed:geo": "node src/scripts/seed-geo.js"
   },
   "keywords": [],
   "author": "",
@@ -18,6 +19,7 @@
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.2.2",
     "cors": "^2.8.6",
+    "country-state-city": "^3.2.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "http-status": "^2.1.0",

@@ -20,19 +20,40 @@ export default (sequelize, DataTypes) => {
         allowNull: true,
       },
 
-      city: {
-        type: DataTypes.STRING(100),
+      branchId: {
+        type: DataTypes.INTEGER,
         allowNull: true,
+        references: {
+          model: 'branches',
+          key: 'id',
+        },
       },
 
-      state: {
-        type: DataTypes.STRING(100),
+      countryId: {
+        type: DataTypes.INTEGER,
         allowNull: true,
+        references: {
+          model: 'countries',
+          key: 'id',
+        },
       },
 
-      country: {
-        type: DataTypes.STRING(100),
+      stateId: {
+        type: DataTypes.INTEGER,
         allowNull: true,
+        references: {
+          model: 'states',
+          key: 'id',
+        },
+      },
+
+      cityId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'cities',
+          key: 'id',
+        },
       },
 
       postalCode: {
@@ -47,6 +68,20 @@ export default (sequelize, DataTypes) => {
     },
     {
       underscored: true,
+      indexes: [
+        {
+          fields: ['branch_id'],
+        },
+        {
+          fields: ['country_id'],
+        },
+        {
+          fields: ['state_id'],
+        },
+        {
+          fields: ['city_id'],
+        },
+      ],
     },
   );
 
@@ -54,6 +89,21 @@ export default (sequelize, DataTypes) => {
     Location.belongsTo(models.Branch, {
       foreignKey: 'branchId',
       as: 'branch',
+    });
+
+    Location.belongsTo(models.Country, {
+      foreignKey: 'countryId',
+      as: 'country',
+    });
+
+    Location.belongsTo(models.State, {
+      foreignKey: 'stateId',
+      as: 'state',
+    });
+
+    Location.belongsTo(models.City, {
+      foreignKey: 'cityId',
+      as: 'city',
     });
 
     Location.hasMany(models.Employee, {

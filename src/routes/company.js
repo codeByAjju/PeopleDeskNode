@@ -6,13 +6,14 @@ import authValidateRequest from '../middlewares/auth-middleware.js';
 const router = Router();
 const { companyController } = controller;
 const { companyValidations } = validations;
-const { validateMiddleware, resourceAccessMiddleware, companyMiddleware, mediaMiddleware } = middlewares;
+const { validateMiddleware, resourceAccessMiddleware, companyMiddleware, mediaMiddleware, geoMiddleware } = middlewares;
 
 router.post(
   '/company/create',
   authValidateRequest,
   resourceAccessMiddleware(['super_admin', 'admin']),
   validateMiddleware({ schema: companyValidations.createSchema }),
+  geoMiddleware.validateLocationHierarchy,
   companyMiddleware.checkCompanyNameExist,
   companyMiddleware.checkCompanyEmailExist,
   companyMiddleware.checkCompanyCodeExist,
@@ -49,6 +50,7 @@ router.put(
   authValidateRequest,
   resourceAccessMiddleware(['super_admin', 'admin']),
   validateMiddleware({ schema: companyValidations.updateSchema }),
+  geoMiddleware.validateLocationHierarchy,
   companyMiddleware.checkUpdateMediaExist,
   mediaMiddleware.checkMediaFor,
   mediaMiddleware.checkMediaExists,

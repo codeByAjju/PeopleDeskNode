@@ -20,19 +20,31 @@ export default (sequelize, DataTypes) => {
         allowNull: true,
       },
 
-      city: {
-        type: DataTypes.STRING(100),
+      countryId: {
+        type: DataTypes.INTEGER,
         allowNull: true,
+        references: {
+          model: 'countries',
+          key: 'id',
+        },
       },
 
-      state: {
-        type: DataTypes.STRING(100),
+      stateId: {
+        type: DataTypes.INTEGER,
         allowNull: true,
+        references: {
+          model: 'states',
+          key: 'id',
+        },
       },
 
-      country: {
-        type: DataTypes.STRING(100),
+      cityId: {
+        type: DataTypes.INTEGER,
         allowNull: true,
+        references: {
+          model: 'cities',
+          key: 'id',
+        },
       },
 
       postalCode: {
@@ -52,10 +64,36 @@ export default (sequelize, DataTypes) => {
     },
     {
       underscored: true,
+      indexes: [
+        {
+          fields: ['country_id'],
+        },
+        {
+          fields: ['state_id'],
+        },
+        {
+          fields: ['city_id'],
+        },
+      ],
     },
   );
 
   Branch.associate = (models) => {
+    Branch.belongsTo(models.Country, {
+      foreignKey: 'countryId',
+      as: 'country',
+    });
+
+    Branch.belongsTo(models.State, {
+      foreignKey: 'stateId',
+      as: 'state',
+    });
+
+    Branch.belongsTo(models.City, {
+      foreignKey: 'cityId',
+      as: 'city',
+    });
+
     Branch.hasMany(models.Location, {
       foreignKey: 'branchId',
       as: 'locations',

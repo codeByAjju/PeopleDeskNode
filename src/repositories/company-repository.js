@@ -4,7 +4,7 @@ import utility from '../utils/index.js';
 import mediaRepository from './media-repository.js';
 import { Op } from 'sequelize';
 
-const { Company } = models;
+const { Company, Country, State, City } = models;
 export default {
   async createCompany(req) {
     try {
@@ -39,6 +39,9 @@ export default {
         status,
         fromDate,
         toDate,
+        countryId,
+        stateId,
+        cityId,
         filters: rawFilters,
       } = {},
     } = req;
@@ -76,6 +79,22 @@ export default {
       where.status = statusVal;
     }
 
+    // Direct ID filters
+    const filterCountryId = filters.countryId || filters.country_id || countryId || req.query?.countryId || req.query?.country_id;
+    if (filterCountryId) {
+      where.countryId = parseInt(filterCountryId, 10);
+    }
+
+    const filterStateId = filters.stateId || filters.state_id || stateId || req.query?.stateId || req.query?.state_id;
+    if (filterStateId) {
+      where.stateId = parseInt(filterStateId, 10);
+    }
+
+    const filterCityId = filters.cityId || filters.city_id || cityId || req.query?.cityId || req.query?.city_id;
+    if (filterCityId) {
+      where.cityId = parseInt(filterCityId, 10);
+    }
+
     // Filterable string columns on Company model
     const filterFields = [
       'name',
@@ -84,9 +103,6 @@ export default {
       'phoneNumber',
       'website',
       'address',
-      'city',
-      'state',
-      'country',
       'postalCode',
     ];
 
@@ -122,7 +138,6 @@ export default {
         { code: { [Op.like]: `%${searchTerm}%` } },
         { email: { [Op.like]: `%${searchTerm}%` } },
         { phoneNumber: { [Op.like]: `%${searchTerm}%` } },
-        { city: { [Op.like]: `%${searchTerm}%` } },
       ];
     }
 
@@ -160,9 +175,9 @@ export default {
       "phoneNumber",
       "website",
       "address",
-      "city",
-      "state",
-      "country",
+      "countryId",
+      "stateId",
+      "cityId",
       "postalCode",
       "status",
       "createdAt",
@@ -203,6 +218,23 @@ export default {
       order: [[safeSortBy, safeSortType]],
       limit: safeLimit,
       offset: safeOffset,
+      include: [
+        {
+          model: Country,
+          as: 'country',
+          attributes: ['id', 'name', 'isoCode', 'phoneCode', 'currencySymbol'],
+        },
+        {
+          model: State,
+          as: 'state',
+          attributes: ['id', 'name'],
+        },
+        {
+          model: City,
+          as: 'city',
+          attributes: ['id', 'name'],
+        },
+      ],
     });
 
     const totalItems = result.count;
@@ -225,6 +257,23 @@ export default {
     try {
       return await Company.findOne({
         where,
+        include: [
+          {
+            model: Country,
+            as: 'country',
+            attributes: ['id', 'name', 'isoCode', 'phoneCode', 'currencySymbol'],
+          },
+          {
+            model: State,
+            as: 'state',
+            attributes: ['id', 'name'],
+          },
+          {
+            model: City,
+            as: 'city',
+            attributes: ['id', 'name'],
+          },
+        ],
       });
     } catch (error) {
       console.log(`companyRepository.findOne error:`, error);

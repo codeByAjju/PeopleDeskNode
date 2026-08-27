@@ -1,12 +1,15 @@
-import media from './media.js'
-import user from './user.js'
-import company from './company.js'
-import department from './department.js'
-import designation from './designation.js'
+import media from './media.js';
+import user from './user.js';
+import company from './company.js';
+import department from './department.js';
+import designation from './designation.js';
+import country from './country.js';
+import state from './state.js';
+import city from './city.js';
 import HttpStatus from 'http-status';
 
 const register = (app) => {
-    app.use('/', [user, media, company, department, designation]);
+    app.use('/', [user, media, company, department, designation, country, state, city]);
     app.use((error, req, res, next) => {
         console.error(error);
         return res.status(HttpStatus.BAD_REQUEST).json({
