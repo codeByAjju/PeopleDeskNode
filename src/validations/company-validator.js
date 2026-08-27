@@ -56,36 +56,33 @@ const createSchema = Joi.object({
       'string.max': 'ADDRESS_MAX_VALIDATION',
     })
     .required(),
-  city: Joi.string()
-    .min(2)
-    .max(100)
+  countryId: Joi.number()
+    .integer()
+    .positive()
     .messages({
-      'any.required': 'CITY_REQUIRED',
-      'string.empty': 'CITY_REQUIRED',
-      'string.min': 'CITY_MIN_VALIDATION',
-      'string.max': 'CITY_MAX_VALIDATION',
+      'any.required': 'COUNTRY_ID_REQUIRED',
+      'number.base': 'COUNTRY_ID_MUST_BE_NUMBER',
+      'number.positive': 'COUNTRY_ID_MUST_BE_POSITIVE',
     })
-    .required(),
-  state: Joi.string()
-    .min(2)
-    .max(100)
+    .optional(),
+  stateId: Joi.number()
+    .integer()
+    .positive()
     .messages({
-      'any.required': 'STATE_REQUIRED',
-      'string.empty': 'STATE_REQUIRED',
-      'string.min': 'STATE_MIN_VALIDATION',
-      'string.max': 'STATE_MAX_VALIDATION',
+      'any.required': 'STATE_ID_REQUIRED',
+      'number.base': 'STATE_ID_MUST_BE_NUMBER',
+      'number.positive': 'STATE_ID_MUST_BE_POSITIVE',
     })
-    .required(),
-  country: Joi.string()
-    .min(2)
-    .max(100)
+    .optional(),
+  cityId: Joi.number()
+    .integer()
+    .positive()
     .messages({
-      'any.required': 'COUNTRY_REQUIRED',
-      'string.empty': 'COUNTRY_REQUIRED',
-      'string.min': 'COUNTRY_MIN_VALIDATION',
-      'string.max': 'COUNTRY_MAX_VALIDATION',
+      'any.required': 'CITY_ID_REQUIRED',
+      'number.base': 'CITY_ID_MUST_BE_NUMBER',
+      'number.positive': 'CITY_ID_MUST_BE_POSITIVE',
     })
-    .required(),
+    .optional(),
   postalCode: Joi.string()
     .min(2)
     .max(20)
@@ -167,20 +164,20 @@ const updateSchema = Joi.object({
     .max(100)
     .required(),
 
-  city: Joi.string()
-    .min(2)
-    .max(100)
-    .required(),
+  countryId: Joi.number()
+    .integer()
+    .positive()
+    .optional(),
 
-  state: Joi.string()
-    .min(2)
-    .max(100)
-    .required(),
+  stateId: Joi.number()
+    .integer()
+    .positive()
+    .optional(),
 
-  country: Joi.string()
-    .min(2)
-    .max(100)
-    .required(),
+  cityId: Joi.number()
+    .integer()
+    .positive()
+    .optional(),
 
   postalCode: Joi.string()
     .min(2)

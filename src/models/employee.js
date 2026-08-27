@@ -96,19 +96,31 @@ export default (sequelize, DataTypes) => {
         allowNull: true,
       },
 
-      city: {
-        type: DataTypes.STRING(100),
+      countryId: {
+        type: DataTypes.INTEGER,
         allowNull: true,
+        references: {
+          model: 'countries',
+          key: 'id',
+        },
       },
 
-      state: {
-        type: DataTypes.STRING(100),
+      stateId: {
+        type: DataTypes.INTEGER,
         allowNull: true,
+        references: {
+          model: 'states',
+          key: 'id',
+        },
       },
 
-      country: {
-        type: DataTypes.STRING(100),
+      cityId: {
+        type: DataTypes.INTEGER,
         allowNull: true,
+        references: {
+          model: 'cities',
+          key: 'id',
+        },
       },
 
       postalCode: {
@@ -154,10 +166,48 @@ export default (sequelize, DataTypes) => {
     },
     {
       underscored: true,
+      indexes: [
+        {
+          fields: ['country_id'],
+        },
+        {
+          fields: ['state_id'],
+        },
+        {
+          fields: ['city_id'],
+        },
+        {
+          fields: ['department_id'],
+        },
+        {
+          fields: ['designation_id'],
+        },
+        {
+          fields: ['branch_id'],
+        },
+        {
+          fields: ['location_id'],
+        },
+      ],
     },
   );
 
   Employee.associate = (models) => {
+    Employee.belongsTo(models.Country, {
+      foreignKey: 'countryId',
+      as: 'country',
+    });
+
+    Employee.belongsTo(models.State, {
+      foreignKey: 'stateId',
+      as: 'state',
+    });
+
+    Employee.belongsTo(models.City, {
+      foreignKey: 'cityId',
+      as: 'city',
+    });
+
     Employee.belongsTo(models.Department, {
       foreignKey: 'departmentId',
       as: 'department',

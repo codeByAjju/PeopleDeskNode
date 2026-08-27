@@ -33,19 +33,31 @@ export default (sequelize, DataTypes) => {
         allowNull: true,
       },
 
-      city: {
-        type: DataTypes.STRING(100),
+      countryId: {
+        type: DataTypes.INTEGER,
         allowNull: true,
+        references: {
+          model: 'countries',
+          key: 'id',
+        },
       },
 
-      state: {
-        type: DataTypes.STRING(100),
+      stateId: {
+        type: DataTypes.INTEGER,
         allowNull: true,
+        references: {
+          model: 'states',
+          key: 'id',
+        },
       },
 
-      country: {
-        type: DataTypes.STRING(100),
+      cityId: {
+        type: DataTypes.INTEGER,
         allowNull: true,
+        references: {
+          model: 'cities',
+          key: 'id',
+        },
       },
 
       postalCode: {
@@ -65,10 +77,34 @@ export default (sequelize, DataTypes) => {
     },
     {
       underscored: true,
+      indexes: [
+        {
+          fields: ['country_id'],
+        },
+        {
+          fields: ['state_id'],
+        },
+        {
+          fields: ['city_id'],
+        },
+      ],
     },
   );
 
-  Company.associate = () => { };
+  Company.associate = (models) => {
+    Company.belongsTo(models.Country, {
+      foreignKey: 'countryId',
+      as: 'country',
+    });
+    Company.belongsTo(models.State, {
+      foreignKey: 'stateId',
+      as: 'state',
+    });
+    Company.belongsTo(models.City, {
+      foreignKey: 'cityId',
+      as: 'city',
+    });
+  };
 
   return Company;
 };
