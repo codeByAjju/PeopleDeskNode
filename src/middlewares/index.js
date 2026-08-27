@@ -7,6 +7,7 @@ import departmentMiddleware from './department-middleware.js';
 import designationMiddleware from './designation-middleware.js';
 import geoMiddleware from './geo-middleware.js';
 import branchMiddleware from './branch-middleware.js';
+import locationMiddleware from './location-middleware.js';
 export default {
     authValidateRequest,
     validateMiddleware,
@@ -17,4 +18,5 @@ export default {
     designationMiddleware,
     geoMiddleware,
     branchMiddleware,
+    locationMiddleware,
 };

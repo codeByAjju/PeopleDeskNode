@@ -7,6 +7,7 @@ import countryRepository from './country-repository.js';
 import stateRepository from './state-repository.js';
 import cityRepository from './city-repository.js';
 import branchRepository from './branch-repository.js';
+import locationRepository from './location-repository.js';
 export default {
     mediaRepository,
     userRepository,
@@ -17,4 +18,5 @@ export default {
     stateRepository,
     cityRepository,
     branchRepository,
+    locationRepository,
 };

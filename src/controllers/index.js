@@ -7,6 +7,7 @@ import countryController from './country-controller.js';
 import stateController from './state-controller.js';
 import cityController from './city-controller.js';
 import branchController from './branch-controller.js';
+import locationController from './location-controller.js';
 export default {
     userController,
     mediaController,
@@ -17,4 +18,5 @@ export default {
     stateController,
     cityController,
     branchController,
+    locationController,
 };
