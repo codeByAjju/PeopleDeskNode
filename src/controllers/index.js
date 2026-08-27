@@ -8,6 +8,7 @@ import stateController from './state-controller.js';
 import cityController from './city-controller.js';
 import branchController from './branch-controller.js';
 import locationController from './location-controller.js';
+import shiftController from './shift-controller.js';
 export default {
     userController,
     mediaController,
@@ -19,4 +20,5 @@ export default {
     cityController,
     branchController,
     locationController,
+    shiftController,
 };

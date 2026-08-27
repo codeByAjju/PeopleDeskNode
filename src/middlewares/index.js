@@ -8,6 +8,7 @@ import designationMiddleware from './designation-middleware.js';
 import geoMiddleware from './geo-middleware.js';
 import branchMiddleware from './branch-middleware.js';
 import locationMiddleware from './location-middleware.js';
+import shiftMiddleware from './shift-middleware.js';
 export default {
     authValidateRequest,
     validateMiddleware,
@@ -19,4 +20,5 @@ export default {
     geoMiddleware,
     branchMiddleware,
     locationMiddleware,
+    shiftMiddleware,
 };

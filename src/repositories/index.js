@@ -8,6 +8,7 @@ import stateRepository from './state-repository.js';
 import cityRepository from './city-repository.js';
 import branchRepository from './branch-repository.js';
 import locationRepository from './location-repository.js';
+import shiftRepository from './shift-repository.js';
 export default {
     mediaRepository,
     userRepository,
@@ -19,4 +20,5 @@ export default {
     cityRepository,
     branchRepository,
     locationRepository,
+    shiftRepository,
 };

@@ -5,6 +5,7 @@ import designationValidations from './designation-validator.js';
 import geoValidations from './geo-validator.js';
 import branchValidations from './branch-validator.js';
 import locationValidations from './location-validator.js';
+import shiftValidations from './shift-validator.js';
 export default {
     userValidations,
     companyValidations,
@@ -13,4 +14,5 @@ export default {
     geoValidations,
     branchValidations,
     locationValidations,
+    shiftValidations,
 };
