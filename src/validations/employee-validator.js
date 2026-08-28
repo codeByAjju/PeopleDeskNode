@@ -92,7 +92,7 @@ const createSchema = Joi.object({
         }),
 
     employmentStatus: Joi.string()
-        .valid('active', 'on_leave', 'notice_period', 'resigned', 'terminated', 'inactive')
+        .valid('active', 'on_leave', 'notice_period', 'resigned', 'terminated', 'inactive', 'deleted')
         .default('active')
         .messages({
             'any.only': 'EMPLOYEE_EMPLOYMENT_STATUS_INVALID',
@@ -210,14 +210,10 @@ const createSchema = Joi.object({
             'number.positive': 'EMPLOYEE_MANAGER_ID_INVALID',
         }),
 
-    userId: Joi.number()
-        .integer()
-        .positive()
-        .allow(null)
+    canEmployeeLogin: Joi.boolean()
+        .default(false)
         .messages({
-            'number.base': 'EMPLOYEE_USER_ID_INVALID',
-            'number.integer': 'EMPLOYEE_USER_ID_INVALID',
-            'number.positive': 'EMPLOYEE_USER_ID_INVALID',
+            'boolean.base': 'EMPLOYEE_CAN_LOGIN_INVALID',
         }),
 });
 
@@ -323,7 +319,7 @@ const updateSchema = Joi.object({
         }),
 
     employmentStatus: Joi.string()
-        .valid('active', 'on_leave', 'notice_period', 'resigned', 'terminated', 'inactive')
+        .valid('active', 'on_leave', 'notice_period', 'resigned', 'terminated', 'inactive', 'deleted')
         .messages({
             'any.only': 'EMPLOYEE_EMPLOYMENT_STATUS_INVALID',
         }),
@@ -440,14 +436,9 @@ const updateSchema = Joi.object({
             'number.positive': 'EMPLOYEE_MANAGER_ID_INVALID',
         }),
 
-    userId: Joi.number()
-        .integer()
-        .positive()
-        .allow(null)
+    canEmployeeLogin: Joi.boolean()
         .messages({
-            'number.base': 'EMPLOYEE_USER_ID_INVALID',
-            'number.integer': 'EMPLOYEE_USER_ID_INVALID',
-            'number.positive': 'EMPLOYEE_USER_ID_INVALID',
+            'boolean.base': 'EMPLOYEE_CAN_LOGIN_INVALID',
         }),
 });
 
@@ -464,7 +455,7 @@ const statusSchema = Joi.object({
         }),
 
     employmentStatus: Joi.string()
-        .valid('active', 'on_leave', 'notice_period', 'resigned', 'terminated', 'inactive')
+        .valid('active', 'on_leave', 'notice_period', 'resigned', 'terminated', 'inactive', 'deleted')
         .required()
         .messages({
             'any.required': 'EMPLOYEE_EMPLOYMENT_STATUS_REQUIRED',

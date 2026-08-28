@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from '../services/jwt.js';
 
 
-const { User } = models;
+const { User, Employee, Department, Designation, Branch, Location, Shift, Country, State, City } = models;
 export default {
   async createHashPassword(password) {
     try {
@@ -45,12 +45,38 @@ export default {
     const { email, password } = request.body;
     const havingEmail = await User.findOne({ where: { email: email } });
     if (havingEmail) {
+      // Block deleted or inactive users from logging in
+      if (havingEmail.status !== 'active') {
+        return { status: false, msg: "Your account has been deactivated. Please contact your administrator." };
+      }
       const isPasswordMatch = await this.compareUserPassword(password, havingEmail.password);
       if (isPasswordMatch) {
-        const { ...userData } = havingEmail.get();
+        const { password: _pw, ...userData } = havingEmail.get();
         const token = jwt.createToken(userData)
         userData.token = token;
         User.update({ token: token }, { where: { id: havingEmail.id } });
+
+        // If the user is an employee, include full employee details
+        if (havingEmail.role === 'employee') {
+          const employee = await Employee.findOne({
+            where: { userId: havingEmail.id },
+            include: [
+              { model: Department, as: 'department', attributes: ['id', 'name'] },
+              { model: Designation, as: 'designation', attributes: ['id', 'name'] },
+              { model: Branch, as: 'branch', attributes: ['id', 'name'] },
+              { model: Location, as: 'location', attributes: ['id', 'name'] },
+              { model: Shift, as: 'shift', attributes: ['id', 'name'] },
+              { model: Country, as: 'country', attributes: ['id', 'name'] },
+              { model: State, as: 'state', attributes: ['id', 'name'] },
+              { model: City, as: 'city', attributes: ['id', 'name'] },
+              { model: Employee, as: 'manager', attributes: ['id', 'firstName', 'lastName', 'employeeCode'] },
+            ],
+          });
+          if (employee) {
+            userData.employee = employee;
+          }
+        }
+
         return { token, ...userData };
       } else {
         // Password doesn't match

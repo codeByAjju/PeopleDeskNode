@@ -1,8 +1,9 @@
 import models from '../models/index.js';
 import utility from '../utils/index.js';
 import { Op } from 'sequelize';
-
-const { Employee, Department, Designation, Branch, Location, Shift, Country, State, City, User } = models;
+import bcrypt from 'bcryptjs';
+import config from '../config/index.js';
+const { Employee, Department, Designation, Branch, Location, Shift, Country, State, City, User, sequelize } = models;
 
 // Associations to include in detail queries
 const includeAssociations = [
@@ -17,17 +18,51 @@ const includeAssociations = [
   { model: Employee, as: 'manager', attributes: ['id', 'firstName', 'lastName', 'employeeCode'] },
 ];
 
+async function hashPassword(password) {
+  const salt = await bcrypt.genSalt();
+  return bcrypt.hash(password, salt);
+}
+
 export default {
   async createEmployee(req) {
+    const transaction = await sequelize.transaction();
     try {
-      const { body } = req;
-      const result = await Employee.create(body);
+      const { canEmployeeLogin, ...body } = req.body;
+
+      let userId = null;
+
+      // If canEmployeeLogin is true, create a User account for this employee
+      if (canEmployeeLogin) {
+        const defaultPassword = config.defaultEmployeeLoginPassword;
+        const hashedPassword = await hashPassword(defaultPassword);
+        const user = await User.create(
+          {
+            firstName: body.firstName,
+            lastName: body.lastName || '',
+            email: body.email,
+            password: hashedPassword,
+            role: 'employee',
+            status: 'active',
+          },
+          { transaction },
+        );
+        userId = user.id;
+      }
+
+      const result = await Employee.create(
+        { ...body, canEmployeeLogin: !!canEmployeeLogin, userId },
+        { transaction },
+      );
+
+      await transaction.commit();
+
       // Return with associations
       const employee = await Employee.findByPk(result.id, { include: includeAssociations });
       return employee;
     } catch (error) {
+      await transaction.rollback();
       console.error('EmployeeRepository createEmployee error:', error);
-      throw Error(error);
+      throw error;
     }
   },
 
@@ -87,8 +122,13 @@ export default {
       filters.employmentStatus !== undefined ? filters.employmentStatus : employmentStatus
     )?.toString().trim();
 
-    if (statusVal && statusVal !== 'all') {
+    if (statusVal === 'all') {
+      // Show everything including deleted — no filter
+    } else if (statusVal) {
       where.employmentStatus = statusVal;
+    } else {
+      // By default, exclude deleted employees
+      where.employmentStatus = { [Op.ne]: 'deleted' };
     }
 
     // Employment type filter
@@ -239,56 +279,173 @@ export default {
   },
 
   async editEmployee(req) {
+    const transaction = await sequelize.transaction();
     try {
-      const { body } = req;
+      const { canEmployeeLogin, ...body } = req.body;
       const { id } = req.params;
 
-      await Employee.update(body, { where: { id } });
+      const existingEmployee = await Employee.findByPk(id);
+      if (!existingEmployee) {
+        await transaction.rollback();
+        return null;
+      }
+
+      const updateData = { ...body };
+
+      // Handle canEmployeeLogin toggle
+      if (canEmployeeLogin !== undefined) {
+        updateData.canEmployeeLogin = !!canEmployeeLogin;
+
+        if (canEmployeeLogin && !existingEmployee.userId) {
+          // Toggled ON: create a new User for this employee
+          const email = body.email || existingEmployee.email;
+          const firstName = body.firstName || existingEmployee.firstName;
+          const lastName = body.lastName !== undefined ? body.lastName : existingEmployee.lastName;
+
+          const defaultPassword = config.defaultEmployeeLoginPassword || '12345678';
+          const hashedPassword = await hashPassword(defaultPassword);
+          const user = await User.create(
+            {
+              firstName,
+              lastName: lastName || '',
+              email,
+              password: hashedPassword,
+              role: 'employee',
+              status: 'active',
+            },
+            { transaction },
+          );
+          updateData.userId = user.id;
+        } else if (!canEmployeeLogin && existingEmployee.userId) {
+          // Toggled OFF: deactivate the linked User and unlink
+          await User.update(
+            { status: 'inactive' },
+            { where: { id: existingEmployee.userId }, transaction },
+          );
+          updateData.userId = null;
+        }
+      }
+
+      await Employee.update(updateData, { where: { id }, transaction });
+
+      await transaction.commit();
 
       const updatedEmployee = await Employee.findByPk(id, { include: includeAssociations });
-
       return updatedEmployee;
     } catch (error) {
+      await transaction.rollback();
       console.error('EmployeeRepository editEmployee error:', error);
-      throw Error(error);
+      throw error;
     }
   },
 
   async deleteEmployee(req) {
+    const transaction = await sequelize.transaction();
     try {
       const { id } = req.params;
-      const deletedEmployee = await Employee.update(
-        { employmentStatus: 'inactive' },
-        { where: { id } },
+
+      // Find the employee to check for a linked user
+      const employee = await Employee.findByPk(id, { transaction });
+
+      // Soft-delete the employee
+      await Employee.update(
+        { employmentStatus: 'deleted', canEmployeeLogin: false },
+        { where: { id }, transaction },
       );
-      return deletedEmployee;
+
+      // If the employee has a linked User, deactivate that too
+      if (employee && employee.userId) {
+        await User.update(
+          { status: 'deleted' },
+          { where: { id: employee.userId }, transaction },
+        );
+      }
+
+      await transaction.commit();
+      return true;
     } catch (error) {
+      await transaction.rollback();
       console.error('EmployeeRepository deleteEmployee error:', error);
       throw Error(error);
     }
   },
 
   async restoreEmployee(req) {
+    const transaction = await sequelize.transaction();
     try {
       const { id } = req.params;
-      await Employee.update({ employmentStatus: 'active' }, { where: { id } });
+
+      // Restore the employee
+      await Employee.update(
+        { employmentStatus: 'active' },
+        { where: { id }, transaction },
+      );
+
+      // If the employee has a linked User, reactivate that too
+      const employee = await Employee.findByPk(id, { transaction });
+      if (employee && employee.userId) {
+        await User.update(
+          { status: 'active' },
+          { where: { id: employee.userId }, transaction },
+        );
+        // Re-enable login since the user account is being restored
+        await Employee.update(
+          { canEmployeeLogin: true },
+          { where: { id }, transaction },
+        );
+      }
+
+      await transaction.commit();
+
       const restoredEmployee = await Employee.findByPk(id, { include: includeAssociations });
       return restoredEmployee;
     } catch (error) {
+      await transaction.rollback();
       console.error('EmployeeRepository restoreEmployee error:', error);
       throw Error(error);
     }
   },
 
   async updateEmployeeStatus(req) {
+    const transaction = await sequelize.transaction();
     try {
       const { id } = req.params;
       const { employmentStatus: newStatus } = req.body;
 
-      await Employee.update({ employmentStatus: newStatus }, { where: { id } });
+      const employee = await Employee.findByPk(id, { transaction });
+
+      const updateData = { employmentStatus: newStatus };
+
+      // Statuses that should disable employee login
+      const disableLoginStatuses = ['deleted', 'inactive', 'terminated', 'resigned'];
+
+      if (disableLoginStatuses.includes(newStatus)) {
+        updateData.canEmployeeLogin = false;
+        // Also deactivate the linked User
+        if (employee && employee.userId) {
+          const userStatus = newStatus === 'deleted' ? 'deleted' : 'inactive';
+          await User.update(
+            { status: userStatus },
+            { where: { id: employee.userId }, transaction },
+          );
+        }
+      } else if (newStatus === 'active' && employee && employee.userId) {
+        // Re-activate the linked User
+        updateData.canEmployeeLogin = true;
+        await User.update(
+          { status: 'active' },
+          { where: { id: employee.userId }, transaction },
+        );
+      }
+
+      await Employee.update(updateData, { where: { id }, transaction });
+
+      await transaction.commit();
+
       const updatedEmployee = await Employee.findByPk(id, { include: includeAssociations });
       return updatedEmployee;
     } catch (error) {
+      await transaction.rollback();
       console.error('EmployeeRepository updateEmployeeStatus error:', error);
       throw Error(error);
     }

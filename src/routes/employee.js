@@ -21,6 +21,7 @@ router.post(
     employeeMiddleware.checkLocationIdExist,
     employeeMiddleware.checkEmployeeManagerIdExist,
     employeeMiddleware.checkEmployeeEmailExist,
+    employeeMiddleware.checkUserEmailAvailable,
     employeeController.create,
 );
 

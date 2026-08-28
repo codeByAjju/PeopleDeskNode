@@ -5,8 +5,32 @@ import departmentRepository from '../repositories/department-repository.js';
 import shiftRepository from '../repositories/shift-repository.js';
 import locationRepository from '../repositories/location-repository.js';
 import branchRepository from '../repositories/branch-repository.js';
+import userRepository from '../repositories/user-repository.js';
 
 export default {
+    async checkUserEmailAvailable(req, res, next) {
+        try {
+            const { canEmployeeLogin, email } = req.body;
+
+            // Only check if canEmployeeLogin is true
+            if (!canEmployeeLogin) {
+                return next();
+            }
+
+            const existingUser = await userRepository.findOne({ email });
+            if (existingUser) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'A user account with this email already exists',
+                });
+            }
+
+            next();
+        } catch (error) {
+            next(error);
+        }
+    },
+
     async checkEmployeeIdExist(req, res, next) {
         try {
             const { id } = req.params;
