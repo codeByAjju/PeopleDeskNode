@@ -81,6 +81,7 @@ export default (sequelize, DataTypes) => {
           'resigned',
           'terminated',
           'inactive',
+          'deleted',
         ),
         allowNull: false,
         defaultValue: 'active',
@@ -162,6 +163,12 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: true,
         unique: true,
+      },
+
+      canEmployeeLogin: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
       },
     },
     {

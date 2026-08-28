@@ -13,6 +13,7 @@ export default {
       timezone: '+00:00',
     },
   },
+  defaultEmployeeLoginPassword: process.env.DEFAULT_EMPLOYEE_LOGIN_PASSWORD,
   email: {
     emailAddress: process.env.MY_EMAIL,
     password: process.env.EMAIL_PASSWORD
@@ -20,7 +21,7 @@ export default {
   jwtSecret: process.env.JWT_SECRET,
   jwtExpireIn: process.env.JWT_EXPIRE_IN,
 
-  app:{
-    url:process.env.APP_URL
+  app: {
+    url: process.env.APP_URL
   }
 }

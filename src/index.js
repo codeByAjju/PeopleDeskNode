@@ -26,9 +26,34 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 const { sequelize } = models;
+
+async function cleanDuplicateIndexes() {
+    const [tables] = await sequelize.query('SHOW TABLES');
+    const dbName = sequelize.config.database;
+    const tableKey = `Tables_in_${dbName}`;
+
+    for (const row of tables) {
+        const tableName = row[tableKey] || Object.values(row)[0];
+        const [indexes] = await sequelize.query(`SHOW INDEX FROM \`${tableName}\``);
+        const keyNames = [...new Set(indexes.map((r) => r.Key_name))];
+        const duplicateIndexes = keyNames.filter((name) => /_\d+$/.test(name));
+
+        for (const indexName of duplicateIndexes) {
+            try {
+                await sequelize.query(`ALTER TABLE \`${tableName}\` DROP INDEX \`${indexName}\``);
+            } catch (err) {
+                // Index may not exist anymore, safe to ignore
+            }
+        }
+    }
+}
+
 sequelize.authenticate()
     .then(() => {
         console.log('Database connected');
+        return cleanDuplicateIndexes();
+    })
+    .then(() => {
         return sequelize.sync({ alter: true });
     })
     .then(() => {
