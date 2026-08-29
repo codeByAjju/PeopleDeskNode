@@ -48,6 +48,14 @@ router.put(
     employeeMiddleware.checkEmployeeIdExist,
     employeeMiddleware.checkUpdateEmployeeCodeExist,
     employeeMiddleware.checkUpdateEmployeeEmailExist,
+    employeeMiddleware.checkDepartmentIdExist,
+    employeeMiddleware.checkDesignationIdExist,
+    employeeMiddleware.checkBranchIdExist,
+    employeeMiddleware.checkShiftIdExist,
+    employeeMiddleware.checkLocationIdExist,
+    employeeMiddleware.checkEmployeeManagerIdExist,
+    employeeMiddleware.checkEmployeeEmailExist,
+    employeeMiddleware.checkUserEmailAvailable,
     employeeController.updateEmployee,
 );
 
