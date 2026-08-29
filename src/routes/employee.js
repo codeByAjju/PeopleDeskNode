@@ -54,8 +54,7 @@ router.put(
     employeeMiddleware.checkShiftIdExist,
     employeeMiddleware.checkLocationIdExist,
     employeeMiddleware.checkEmployeeManagerIdExist,
-    employeeMiddleware.checkEmployeeEmailExist,
-    employeeMiddleware.checkUserEmailAvailable,
+    // employeeMiddleware.checkUserEmailAvailable,
     employeeController.updateEmployee,
 );
 

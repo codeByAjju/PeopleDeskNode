@@ -128,7 +128,7 @@ export default {
       where.employmentStatus = statusVal;
     } else {
       // By default, exclude deleted employees
-      where.employmentStatus = { [Op.ne]: 'deleted' };
+      // where.employmentStatus = { [Op.ne]: 'deleted' };
     }
 
     // Employment type filter
@@ -148,6 +148,23 @@ export default {
     if (genderVal && genderVal !== 'all') {
       where.gender = genderVal;
     }
+    // Filterable string columns on Employee model
+    const filterFields = [
+      'employeeCode',
+      'firstName',
+      'lastName',
+      'email',
+      'phoneNumber',
+    ];
+
+    filterFields.forEach((field) => {
+      const val = (filters[field] !== undefined ? filters[field] : req.query?.[field])?.toString().trim();
+      if (val) {
+        where[field] = {
+          [Op.like]: `%${val}%`,
+        };
+      }
+    });
 
     // Foreign key filters (departmentId, designationId, branchId, locationId, shiftId, managerId)
     const fkFields = ['departmentId', 'designationId', 'branchId', 'locationId', 'shiftId', 'managerId'];
@@ -245,7 +262,6 @@ export default {
       offset: safeOffset,
       distinct: true,
     });
-
     const totalItems = result.count;
     const totalPages = Math.ceil(totalItems / safeLimit);
     const currentPage = Math.floor(safeOffset / safeLimit) + 1;
@@ -297,11 +313,25 @@ export default {
         updateData.canEmployeeLogin = !!canEmployeeLogin;
 
         if (canEmployeeLogin && !existingEmployee.userId) {
-          // Toggled ON: create a new User for this employee
+          // Toggled ON and employee does NOT have a linked User yet
           const email = body.email || existingEmployee.email;
           const firstName = body.firstName || existingEmployee.firstName;
           const lastName = body.lastName !== undefined ? body.lastName : existingEmployee.lastName;
 
+          // Check if this email is already taken by another User
+          const existingUser = await User.findOne({
+            where: { email },
+            transaction,
+          });
+
+          if (existingUser) {
+            await transaction.rollback();
+            const error = new Error('This email is already registered with another user account');
+            error.statusCode = 409;
+            throw error;
+          }
+
+          // Email is available - create a new User for this employee
           const defaultPassword = config.defaultEmployeeLoginPassword || '12345678';
           const hashedPassword = await hashPassword(defaultPassword);
           const user = await User.create(
@@ -316,6 +346,14 @@ export default {
             { transaction },
           );
           updateData.userId = user.id;
+
+        } else if (canEmployeeLogin && existingEmployee.userId) {
+          // Already has login - just update employee, re-activate User if needed
+          await User.update(
+            { status: 'active' },
+            { where: { id: existingEmployee.userId }, transaction },
+          );
+
         } else if (!canEmployeeLogin && existingEmployee.userId) {
           // Toggled OFF: deactivate the linked User and unlink
           await User.update(

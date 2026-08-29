@@ -31,8 +31,7 @@ export default {
                 return res.status(httpStatus.OK).json({
                     message: "Employees fetched successfully",
                     status: true,
-                    result: result.employees,
-                    pagination: result.pagination,
+                    result: result,
                 });
             } else {
                 return res.status(httpStatus.BAD_REQUEST).json({
