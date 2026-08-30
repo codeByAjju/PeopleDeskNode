@@ -6,8 +6,9 @@ const { countryRepository } = repositories;
 export default {
   async getAllCountries(req, res, next) {
     try {
-      const countries = await countryRepository.getAllCountries(req);
-      const formatted = countries.map((item) => ({
+      const result = await countryRepository.getAllCountries(req);
+      const { countries, total, page, limit, totalPages } = result || {};
+      const formatted = (countries || []).map((item) => ({
         id: item.id,
         name: item.name,
         isoCode: item.isoCode,
@@ -21,7 +22,13 @@ export default {
       return res.status(httpStatus.OK).json({
         status: true,
         message: 'Countries fetched successfully',
-        result: formatted,
+        result: {
+          countries: formatted,
+          total,
+          page,
+          limit,
+          totalPages,
+        },
       });
     } catch (error) {
       next(error);

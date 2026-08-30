@@ -4,9 +4,9 @@ import models from '../models/index.js';
 const { Country } = models;
 
 export default {
-  async getAllCountries(req = {}) {
+  async getAllCountries(req) {
     try {
-      const { query: { search, q, status } = {} } = req;
+      const { search, q, status, limit, page } = req.query || {};
       const where = {};
 
       const statusVal = status?.toString().trim();
@@ -24,16 +24,27 @@ export default {
         ];
       }
 
-      const countries = await Country.findAll({
+      const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+      const limitNum = Math.min(parseInt(limit, 10) || 100, 500);
+
+      const { rows: countries, count: total } = await Country.findAndCountAll({
         where,
         order: [['name', 'ASC']],
         attributes: ['id', 'name', 'isoCode', 'phoneCode', 'currencySymbol', 'status'],
+        limit: limitNum,
+        offset: (pageNum - 1) * limitNum,
       });
 
-      return countries;
+      return {
+        countries,
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      };
     } catch (error) {
       console.error('countryRepository.getAllCountries error:', error);
-      throw Error(error);
+      throw error;
     }
   },
 

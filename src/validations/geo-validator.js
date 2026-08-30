@@ -4,6 +4,8 @@ export const getCountryListSchema = Joi.object({
   search: Joi.string().allow('').optional(),
   q: Joi.string().allow('').optional(),
   status: Joi.string().valid('active', 'inactive', 'deleted', 'all').optional(),
+  page: Joi.number().integer().positive().optional(),
+  limit: Joi.number().integer().positive().max(1000).optional(),
 });
 
 export const getStateByCountrySchema = Joi.object({
@@ -15,6 +17,8 @@ export const getStateByCountrySchema = Joi.object({
   search: Joi.string().allow('').optional(),
   q: Joi.string().allow('').optional(),
   status: Joi.string().valid('active', 'inactive', 'deleted', 'all').optional(),
+  page: Joi.number().integer().positive().optional(),
+  limit: Joi.number().integer().positive().max(1000).optional(),
 });
 
 export const getCityByStateSchema = Joi.object({
