@@ -32,13 +32,19 @@ router.get(
 );
 
 router.get(
+  '/department/stats',
+  authValidateRequest,
+  resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),
+  departmentController.getAllDepartmentStats,
+)
+
+router.get(
   '/department/:id',
   authValidateRequest,
   resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),
   departmentMiddleware.checkDepartmentIdExist,
   departmentController.getDepartmentById,
 )
-
 router.put(
   '/department-update/:id',
   authValidateRequest,

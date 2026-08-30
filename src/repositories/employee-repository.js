@@ -65,7 +65,152 @@ export default {
       throw error;
     }
   },
+  async getAllEmployeeStats(req) {
+    try {
+      const {
+        query: {
+          search,
+          q,
+          employmentType,
+          departmentId,
+          designationId,
+          branchId,
+          locationId,
+          shiftId,
+          managerId,
+          gender,
+          fromDate,
+          toDate,
+          filters: rawFilters,
+        } = {},
+      } = req;
 
+      let filters = {};
+      if (typeof rawFilters === 'object' && rawFilters !== null) {
+        filters = { ...rawFilters };
+      } else if (typeof rawFilters === 'string') {
+        try {
+          filters = JSON.parse(rawFilters);
+        } catch (e) {
+          filters = {};
+        }
+      }
+
+      if (req.query) {
+        Object.keys(req.query).forEach((key) => {
+          const match = key.match(/^filters\[([^\]]+)\]$/);
+          if (match && match[1]) {
+            filters[match[1]] = req.query[key];
+          }
+        });
+      }
+
+      const where = {};
+
+      // Employment type filter
+      const typeVal = (
+        filters.employmentType !== undefined ? filters.employmentType : employmentType
+      )?.toString().trim();
+
+      if (typeVal && typeVal !== 'all') {
+        where.employmentType = typeVal;
+      }
+
+      // Gender filter
+      const genderVal = (
+        filters.gender !== undefined ? filters.gender : gender
+      )?.toString().trim();
+
+      if (genderVal && genderVal !== 'all') {
+        where.gender = genderVal;
+      }
+
+      // Foreign key filters
+      const fkFields = ['departmentId', 'designationId', 'branchId', 'locationId', 'shiftId', 'managerId'];
+      fkFields.forEach((field) => {
+        const val = filters[field] !== undefined ? filters[field] : req.query?.[field];
+        if (val !== undefined && val !== null && val !== '') {
+          where[field] = parseInt(val, 10);
+        }
+      });
+
+      // General search across multiple fields
+      const searchTerm = (search || q || filters.search || filters.q)?.toString().trim();
+      if (searchTerm) {
+        where[Op.or] = [
+          { firstName: { [Op.like]: `%${searchTerm}%` } },
+          { lastName: { [Op.like]: `%${searchTerm}%` } },
+          { email: { [Op.like]: `%${searchTerm}%` } },
+          { employeeCode: { [Op.like]: `%${searchTerm}%` } },
+          { phoneNumber: { [Op.like]: `%${searchTerm}%` } },
+        ];
+      }
+
+      // Date filters (based on dateOfJoining)
+      const filterFromDate = filters.fromDate || fromDate;
+      const filterToDate = filters.toDate || toDate;
+
+      if (filterFromDate && filterToDate) {
+        where.dateOfJoining = {
+          [Op.between]: [filterFromDate, filterToDate],
+        };
+      } else if (filterFromDate) {
+        where.dateOfJoining = {
+          [Op.gte]: filterFromDate,
+        };
+      } else if (filterToDate) {
+        where.dateOfJoining = {
+          [Op.lte]: filterToDate,
+        };
+      }
+
+      // Query database counts
+      const [
+        totalEmployees,
+        activeEmployees,
+        inactiveEmployees,
+        terminatedEmployees,
+        resignedEmployees,
+        onLeaveEmployees,
+        noticePeriodEmployees
+      ] = await Promise.all([
+        Employee.count({
+          where: { ...where, employmentStatus: { [Op.ne]: 'deleted' } }
+        }),
+        Employee.count({
+          where: { ...where, employmentStatus: 'active' }
+        }),
+        Employee.count({
+          where: { ...where, employmentStatus: 'inactive' }
+        }),
+        Employee.count({
+          where: { ...where, employmentStatus: 'terminated' }
+        }),
+        Employee.count({
+          where: { ...where, employmentStatus: 'resigned' }
+        }),
+        Employee.count({
+          where: { ...where, employmentStatus: 'on_leave' }
+        }),
+        Employee.count({
+          where: { ...where, employmentStatus: 'notice_period' }
+        })
+      ]);
+
+      return {
+        totalEmployees,
+        activeEmployees,
+        inactiveEmployees,
+        terminatedEmployees,
+        resignedEmployees,
+        onLeaveEmployees,
+        noticePeriodEmployees
+      };
+    } catch (error) {
+      console.error('EmployeeRepository getAllEmployeeStats error:', error);
+      throw error;
+    }
+  },
   async getAllEmployee(req) {
     const {
       query: {
@@ -148,23 +293,6 @@ export default {
     if (genderVal && genderVal !== 'all') {
       where.gender = genderVal;
     }
-    // Filterable string columns on Employee model
-    const filterFields = [
-      'employeeCode',
-      'firstName',
-      'lastName',
-      'email',
-      'phoneNumber',
-    ];
-
-    filterFields.forEach((field) => {
-      const val = (filters[field] !== undefined ? filters[field] : req.query?.[field])?.toString().trim();
-      if (val) {
-        where[field] = {
-          [Op.like]: `%${val}%`,
-        };
-      }
-    });
 
     // Foreign key filters (departmentId, designationId, branchId, locationId, shiftId, managerId)
     const fkFields = ['departmentId', 'designationId', 'branchId', 'locationId', 'shiftId', 'managerId'];

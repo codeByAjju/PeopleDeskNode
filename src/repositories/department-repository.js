@@ -69,9 +69,9 @@ export default {
     if (statusVal && statusVal !== 'all') {
       where.status = statusVal;
     } else if (!statusVal) {
-      where.status = {
-        [Op.ne]: 'deleted',
-      };
+      // where.status = {
+      //   [Op.ne]: 'deleted',
+      // };
     }
 
     // Filterable string columns
@@ -156,13 +156,119 @@ export default {
       safeOffset = Math.max(parseInt(offsetVal, 10) || 0, 0);
     }
 
-    return await Department.findAndCountAll({
+    const result = await Department.findAndCountAll({
       where,
       order: [[safeSortBy, safeSortType]],
       limit: safeLimit,
       offset: safeOffset,
+      distinct: true,
     });
+
+    const totalItems = result.count;
+    const totalPages = Math.ceil(totalItems / safeLimit);
+    const currentPage = Math.floor(safeOffset / safeLimit) + 1;
+    return {
+      departments: result.rows,
+      pagination: {
+        page: currentPage,
+        limit: safeLimit,
+        totalItems,
+        totalPages,
+        hasNextPage: currentPage < totalPages,
+        hasPreviousPage: currentPage > 1,
+      },
+    };
   },
+
+  async getAllDepartmentStats(req) {
+    try {
+      const { query: { filters: rawFilters } } = req;
+      let filters = {};
+      if (typeof rawFilters === 'object' && rawFilters !== null) {
+        filters = { ...rawFilters };
+      } else if (typeof rawFilters === 'string') {
+        try {
+          filters = JSON.parse(rawFilters);
+        } catch (e) {
+          filters = {};
+        }
+      }
+
+      if (req.query) {
+        Object.keys(req.query).forEach((key) => {
+          const match = key.match(/^filters\[([^\]]+)\]$/);
+          if (match && match[1]) {
+            filters[match[1]] = req.query[key];
+          }
+        });
+      }
+
+      // Count active departments
+      const activeWhere = { status: 'active' };
+      if (filters.fromDate && filters.toDate) {
+        const startDate = utility.getStartDateFormater(filters.fromDate);
+        const endDate = utility.getEndDateFormater(filters.toDate);
+        activeWhere.createdAt = { [Op.between]: [startDate, endDate] };
+      } else if (filters.fromDate) {
+        const startDate = utility.getStartDateFormater(filters.fromDate);
+        activeWhere.createdAt = { [Op.gte]: startDate };
+      } else if (filters.toDate) {
+        const endDate = utility.getEndDateFormater(filters.toDate);
+        activeWhere.createdAt = { [Op.lte]: endDate };
+      }
+
+      const activeCount = await Department.count({ where: activeWhere });
+
+      // Count inactive departments
+      const inactiveWhere = { status: 'inactive' };
+      if (filters.fromDate && filters.toDate) {
+        const startDate = utility.getStartDateFormater(filters.fromDate);
+        const endDate = utility.getEndDateFormater(filters.toDate);
+        inactiveWhere.createdAt = { [Op.between]: [startDate, endDate] };
+      } else if (filters.fromDate) {
+        const startDate = utility.getStartDateFormater(filters.fromDate);
+        inactiveWhere.createdAt = { [Op.gte]: startDate };
+      } else if (filters.toDate) {
+        const endDate = utility.getEndDateFormater(filters.toDate);
+        inactiveWhere.createdAt = { [Op.lte]: endDate };
+      }
+
+      const inactiveCount = await Department.count({ where: inactiveWhere });
+
+      // Count deleted departments
+      const deletedWhere = { status: 'deleted' };
+      if (filters.fromDate && filters.toDate) {
+        const startDate = utility.getStartDateFormater(filters.fromDate);
+        const endDate = utility.getEndDateFormater(filters.toDate);
+        deletedWhere.createdAt = { [Op.between]: [startDate, endDate] };
+      } else if (filters.fromDate) {
+        const startDate = utility.getStartDateFormater(filters.fromDate);
+        deletedWhere.createdAt = { [Op.gte]: startDate };
+      } else if (filters.toDate) {
+        const endDate = utility.getEndDateFormater(filters.toDate);
+        deletedWhere.createdAt = { [Op.lte]: endDate };
+      }
+
+      const deletedCount = await Department.count({ where: deletedWhere });
+
+      // Count total departments
+      const totalCount = await Department.count({
+        where: {
+          status: { [Op.in]: ['active', 'inactive', 'deleted'] }
+        }
+      });
+
+      return {
+        totalDepartments: totalCount,
+        activeDepartments: activeCount,
+        inactiveDepartments: inactiveCount,
+        deletedDepartments: deletedCount,
+      };
+    } catch (error) {
+      throw Error(error);
+    }
+  },
+
   async editDepartment(req) {
     try {
       const { body } = req;

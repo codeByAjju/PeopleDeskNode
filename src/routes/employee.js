@@ -31,6 +31,12 @@ router.get(
     resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),
     employeeController.getAllEmployee,
 );
+router.get(
+    '/employee/stats',
+    authValidateRequest,
+    resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),
+    employeeController.getAllEmployeeStats,
+);
 
 router.get(
     '/employee/:id',

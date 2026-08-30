@@ -44,6 +44,26 @@ export default {
         }
     },
 
+    async getAllEmployeeStats(req, res, next) {
+        try {
+            const result = await employeeRepository.getAllEmployeeStats(req);
+            if (result) {
+                return res.status(httpStatus.OK).json({
+                    result,
+                    message: "Employee stats fetched successfully",
+                    status: 200,
+                });
+            } else {
+                return res.status(httpStatus.BAD_REQUEST).json({
+                    message: "bad request",
+                    status: 400,
+                });
+            }
+        } catch (error) {
+            next(error);
+        }
+    },
+
     async getEmployeeById(req, res, next) {
         try {
             const { id } = req.params;

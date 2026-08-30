@@ -27,8 +27,7 @@ export default {
                 return res.status(httpStatus.OK).json({
                     message: "Designations fetched successfully",
                     status: true,
-                    result: result.designations,
-                    pagination: result.pagination,
+                    result: result,
                 });
             } else {
                 return res.status(httpStatus.BAD_REQUEST).json({ message: "bad request", status: false });
@@ -98,5 +97,17 @@ export default {
         } catch (error) {
             next(error);
         }
-    }
+    },
+    async getAllDesignationStats(req, res, next) {
+        try {
+            const result = await designationRepository.getAllDesignationStats(req);
+            if (result) {
+                return res.status(200).json({ result: result, message: "Designation stats fetched successfully", status: true });
+            } else {
+                return res.status(400).json({ message: "bad request", status: false });
+            }
+        } catch (error) {
+            next(error);
+        }
+    },
 };
