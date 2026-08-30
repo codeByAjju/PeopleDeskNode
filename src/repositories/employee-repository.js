@@ -65,7 +65,152 @@ export default {
       throw error;
     }
   },
+  async getAllEmployeeStats(req) {
+    try {
+      const {
+        query: {
+          search,
+          q,
+          employmentType,
+          departmentId,
+          designationId,
+          branchId,
+          locationId,
+          shiftId,
+          managerId,
+          gender,
+          fromDate,
+          toDate,
+          filters: rawFilters,
+        } = {},
+      } = req;
 
+      let filters = {};
+      if (typeof rawFilters === 'object' && rawFilters !== null) {
+        filters = { ...rawFilters };
+      } else if (typeof rawFilters === 'string') {
+        try {
+          filters = JSON.parse(rawFilters);
+        } catch (e) {
+          filters = {};
+        }
+      }
+
+      if (req.query) {
+        Object.keys(req.query).forEach((key) => {
+          const match = key.match(/^filters\[([^\]]+)\]$/);
+          if (match && match[1]) {
+            filters[match[1]] = req.query[key];
+          }
+        });
+      }
+
+      const where = {};
+
+      // Employment type filter
+      const typeVal = (
+        filters.employmentType !== undefined ? filters.employmentType : employmentType
+      )?.toString().trim();
+
+      if (typeVal && typeVal !== 'all') {
+        where.employmentType = typeVal;
+      }
+
+      // Gender filter
+      const genderVal = (
+        filters.gender !== undefined ? filters.gender : gender
+      )?.toString().trim();
+
+      if (genderVal && genderVal !== 'all') {
+        where.gender = genderVal;
+      }
+
+      // Foreign key filters
+      const fkFields = ['departmentId', 'designationId', 'branchId', 'locationId', 'shiftId', 'managerId'];
+      fkFields.forEach((field) => {
+        const val = filters[field] !== undefined ? filters[field] : req.query?.[field];
+        if (val !== undefined && val !== null && val !== '') {
+          where[field] = parseInt(val, 10);
+        }
+      });
+
+      // General search across multiple fields
+      const searchTerm = (search || q || filters.search || filters.q)?.toString().trim();
+      if (searchTerm) {
+        where[Op.or] = [
+          { firstName: { [Op.like]: `%${searchTerm}%` } },
+          { lastName: { [Op.like]: `%${searchTerm}%` } },
+          { email: { [Op.like]: `%${searchTerm}%` } },
+          { employeeCode: { [Op.like]: `%${searchTerm}%` } },
+          { phoneNumber: { [Op.like]: `%${searchTerm}%` } },
+        ];
+      }
+
+      // Date filters (based on dateOfJoining)
+      const filterFromDate = filters.fromDate || fromDate;
+      const filterToDate = filters.toDate || toDate;
+
+      if (filterFromDate && filterToDate) {
+        where.dateOfJoining = {
+          [Op.between]: [filterFromDate, filterToDate],
+        };
+      } else if (filterFromDate) {
+        where.dateOfJoining = {
+          [Op.gte]: filterFromDate,
+        };
+      } else if (filterToDate) {
+        where.dateOfJoining = {
+          [Op.lte]: filterToDate,
+        };
+      }
+
+      // Query database counts
+      const [
+        totalEmployees,
+        activeEmployees,
+        inactiveEmployees,
+        terminatedEmployees,
+        resignedEmployees,
+        onLeaveEmployees,
+        noticePeriodEmployees
+      ] = await Promise.all([
+        Employee.count({
+          where: { ...where, employmentStatus: { [Op.ne]: 'deleted' } }
+        }),
+        Employee.count({
+          where: { ...where, employmentStatus: 'active' }
+        }),
+        Employee.count({
+          where: { ...where, employmentStatus: 'inactive' }
+        }),
+        Employee.count({
+          where: { ...where, employmentStatus: 'terminated' }
+        }),
+        Employee.count({
+          where: { ...where, employmentStatus: 'resigned' }
+        }),
+        Employee.count({
+          where: { ...where, employmentStatus: 'on_leave' }
+        }),
+        Employee.count({
+          where: { ...where, employmentStatus: 'notice_period' }
+        })
+      ]);
+
+      return {
+        totalEmployees,
+        activeEmployees,
+        inactiveEmployees,
+        terminatedEmployees,
+        resignedEmployees,
+        onLeaveEmployees,
+        noticePeriodEmployees
+      };
+    } catch (error) {
+      console.error('EmployeeRepository getAllEmployeeStats error:', error);
+      throw error;
+    }
+  },
   async getAllEmployee(req) {
     const {
       query: {
@@ -128,7 +273,7 @@ export default {
       where.employmentStatus = statusVal;
     } else {
       // By default, exclude deleted employees
-      where.employmentStatus = { [Op.ne]: 'deleted' };
+      // where.employmentStatus = { [Op.ne]: 'deleted' };
     }
 
     // Employment type filter
@@ -245,7 +390,6 @@ export default {
       offset: safeOffset,
       distinct: true,
     });
-
     const totalItems = result.count;
     const totalPages = Math.ceil(totalItems / safeLimit);
     const currentPage = Math.floor(safeOffset / safeLimit) + 1;
@@ -297,11 +441,25 @@ export default {
         updateData.canEmployeeLogin = !!canEmployeeLogin;
 
         if (canEmployeeLogin && !existingEmployee.userId) {
-          // Toggled ON: create a new User for this employee
+          // Toggled ON and employee does NOT have a linked User yet
           const email = body.email || existingEmployee.email;
           const firstName = body.firstName || existingEmployee.firstName;
           const lastName = body.lastName !== undefined ? body.lastName : existingEmployee.lastName;
 
+          // Check if this email is already taken by another User
+          const existingUser = await User.findOne({
+            where: { email },
+            transaction,
+          });
+
+          if (existingUser) {
+            await transaction.rollback();
+            const error = new Error('This email is already registered with another user account');
+            error.statusCode = 409;
+            throw error;
+          }
+
+          // Email is available - create a new User for this employee
           const defaultPassword = config.defaultEmployeeLoginPassword || '12345678';
           const hashedPassword = await hashPassword(defaultPassword);
           const user = await User.create(
@@ -316,6 +474,14 @@ export default {
             { transaction },
           );
           updateData.userId = user.id;
+
+        } else if (canEmployeeLogin && existingEmployee.userId) {
+          // Already has login - just update employee, re-activate User if needed
+          await User.update(
+            { status: 'active' },
+            { where: { id: existingEmployee.userId }, transaction },
+          );
+
         } else if (!canEmployeeLogin && existingEmployee.userId) {
           // Toggled OFF: deactivate the linked User and unlink
           await User.update(

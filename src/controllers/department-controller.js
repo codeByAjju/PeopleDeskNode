@@ -39,7 +39,7 @@ export default {
                 return res.status(httpStatus.OK).json({
                     message: "Departments fetched successfully",
                     status: true,
-                    result: result.rows,
+                    result: result,
                 });
             } else {
                 return res.status(httpStatus.BAD_REQUEST).json({ message: "bad request", status: false });
@@ -57,6 +57,21 @@ export default {
                 return res.status(httpStatus.BAD_REQUEST).json({ message: "bad request", status: false });
             }
         } catch (error) {
+            next(error);
+        }
+    },
+    async getAllDepartmentStats(req, res, next) {
+        try {
+            console.log(111111111);
+            const result = await departmentRepository.getAllDepartmentStats(req);
+            console.log("result", result)
+            if (result) {
+                return res.status(httpStatus.OK).json({ result, message: "Department stats fetched successfully", status: true });
+            } else {
+                return res.status(httpStatus.BAD_REQUEST).json({ message: "bad request", status: false });
+            }
+        } catch (error) {
+            console.log("error", error)
             next(error);
         }
     },

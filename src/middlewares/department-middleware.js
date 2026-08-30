@@ -86,7 +86,7 @@ export default {
 
             const result = await departmentRepository.findOne({
                 id,
-                status: 'active',
+                // status: 'active',
             });
 
             if (!result) {

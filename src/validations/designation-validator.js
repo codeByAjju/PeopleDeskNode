@@ -55,6 +55,16 @@ const createSchema = Joi.object({
 });
 
 const updateSchema = Joi.object({
+    departmentId: Joi.number()
+        .integer()
+        .positive()
+        .required()
+        .messages({
+            'any.required': 'DEPARTMENT_ID_REQUIRED',
+            'number.base': 'DEPARTMENT_ID_INVALID',
+            'number.integer': 'DEPARTMENT_ID_INVALID',
+            'number.positive': 'DEPARTMENT_ID_INVALID',
+        }),
     id: Joi.number()
         .integer()
         .positive()

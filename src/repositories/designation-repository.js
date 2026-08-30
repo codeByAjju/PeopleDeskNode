@@ -69,9 +69,9 @@ export default {
     if (statusVal && statusVal !== 'all') {
       where.status = statusVal;
     } else if (!statusVal) {
-      where.status = {
-        [Op.ne]: 'deleted',
-      };
+      // where.status = {
+      //   [Op.ne]: 'deleted',
+      // };
     }
 
     // Filterable string columns
@@ -225,6 +225,32 @@ export default {
       return result;
     } catch (error) {
       throw Error(error);
+    }
+  },
+  async getAllDesignationStats(req) {
+    try {
+      // Query database counts
+      const [
+        totalDesignations,
+        activeDesignations,
+        inactiveDesignations,
+        deletedDesignations
+      ] = await Promise.all([
+        Designation.count(),
+        Designation.count({ where: { status: 'active' } }),
+        Designation.count({ where: { status: 'inactive' } }),
+        Designation.count({ where: { status: 'deleted' } })
+      ]);
+
+      return {
+        totalDesignations,
+        activeDesignations,
+        inactiveDesignations,
+        deletedDesignations
+      };
+    } catch (error) {
+      console.error('DesignationRepository getAllDesignationStats error:', error);
+      throw error;
     }
   },
   async findOne(where) {

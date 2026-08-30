@@ -28,6 +28,13 @@ router.get(
 );
 
 router.get(
+  '/designation/stats',
+  authValidateRequest,
+  resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),
+  designationController.getAllDesignationStats,
+)
+
+router.get(
   '/designation/:id',
   authValidateRequest,
   resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),
