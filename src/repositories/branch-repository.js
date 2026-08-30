@@ -2,7 +2,7 @@ import models from '../models/index.js';
 import utility from '../utils/index.js';
 import { Op } from 'sequelize';
 
-const { Branch, Country, State, City } = models;
+const { Branch, Country, State, City, Employee } = models;
 export default {
   async createBranch(req) {
     try {
@@ -371,4 +371,50 @@ export default {
       throw Error(error);
     }
   },
+  async getBranchStats(req) {
+    try {
+      // Query database counts
+      const [
+        totalBranches,
+        activeBranches,
+        inactiveBranches,
+        deletedBranches
+      ] = await Promise.all([
+        Branch.count(),
+        Branch.count({ where: { status: 'active' } }),
+        Branch.count({ where: { status: 'inactive' } }),
+        Branch.count({ where: { status: 'deleted' } })
+      ]);
+
+      return {
+        totalBranches,
+        activeBranches,
+        inactiveBranches,
+        deletedBranches
+      };
+    } catch (error) {
+      console.error('BranchRepository getBranchStats error:', error);
+      throw error;
+    }
+  },
+
+  async getEmployeeByBranch(req) {
+    try {
+      const { branchId } = req.params;
+      const result = await Employee.findAll({
+        where: { branchId },
+        include: [
+          {
+            model: Branch,
+            as: 'branch',
+            attributes: ['id', 'name', 'code', 'phone', 'address'],
+          },
+        ],
+      });
+      return result;
+    } catch (error) {
+      throw Error(error);
+    }
+  },
+
 }

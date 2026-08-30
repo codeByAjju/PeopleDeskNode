@@ -25,7 +25,7 @@ export default {
       }
 
       const pageNum = Math.max(parseInt(page, 10) || 1, 1);
-      const limitNum = Math.min(parseInt(limit, 10) || 100, 500);
+      const limitNum = Math.min(parseInt(limit, 10) || 500, 500);
 
       const { rows: countries, count: total } = await Country.findAndCountAll({
         where,

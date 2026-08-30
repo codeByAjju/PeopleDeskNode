@@ -28,7 +28,12 @@ router.get(
     resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),
     branchController.getAllBranch,
 );
-
+router.get(
+    '/branch/stats',
+    authValidateRequest,
+    resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),
+    branchController.getBranchStats,
+)
 router.get(
     '/branch/:id',
     authValidateRequest,
@@ -87,14 +92,7 @@ router.get(
     '/branch/:branchId/employees',
     authValidateRequest,
     resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),
-    // branchMiddleware.checkCountryIdExist,
-    // branchController.getBranchByCountry,
-)
-router.get(
-    '/branch/:branchId/stats',
-    authValidateRequest,
-    resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),
-    // branchMiddleware.checkBranchIdExist,
-    // branchController.getBranchStats,
+    branchMiddleware.checkCountryIdExist,
+    branchController.getEmployeeByBranch,
 )
 export default router;
