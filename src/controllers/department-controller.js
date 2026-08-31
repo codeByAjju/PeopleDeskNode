@@ -62,9 +62,7 @@ export default {
     },
     async getAllDepartmentStats(req, res, next) {
         try {
-            console.log(111111111);
             const result = await departmentRepository.getAllDepartmentStats(req);
-            console.log("result", result)
             if (result) {
                 return res.status(httpStatus.OK).json({ result, message: "Department stats fetched successfully", status: true });
             } else {
