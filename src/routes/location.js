@@ -27,6 +27,13 @@ router.get(
 );
 
 router.get(
+    '/location/stats',
+    authValidateRequest,
+    resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),
+    locationController.getLocationStats,
+)
+
+router.get(
     '/location/:id',
     authValidateRequest,
     resourceAccessMiddleware(['super_admin', 'admin', 'hr_manager']),

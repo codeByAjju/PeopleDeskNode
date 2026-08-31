@@ -45,6 +45,26 @@ export default {
         }
     },
 
+    async getLocationStats(req, res, next) {
+        try {
+            const result = await locationRepository.getLocationStats();
+            if (result) {
+                return res.status(httpStatus.OK).json({
+                    result,
+                    message: "Location stats fetched successfully",
+                    status: true,
+                });
+            } else {
+                return res.status(httpStatus.BAD_REQUEST).json({
+                    message: "bad request",
+                    status: false,
+                });
+            }
+        } catch (error) {
+            next(error);
+        }
+    },
+
     async getLocationById(req, res, next) {
         try {
             const { id } = req.params;

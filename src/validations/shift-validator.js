@@ -65,7 +65,7 @@ const createSchema = Joi.object({
         }),
 
     status: Joi.string()
-        .valid('active', 'inactive')
+        .valid('active', 'inactive', 'deleted')
         .default('active')
         .messages({
             'any.only': 'SHIFT_STATUS_INVALID',
@@ -147,7 +147,7 @@ const updateSchema = Joi.object({
         }),
 
     status: Joi.string()
-        .valid('active', 'inactive')
+        .valid('active', 'inactive', 'deleted')
         .messages({
             'any.only': 'SHIFT_STATUS_INVALID',
         }),
