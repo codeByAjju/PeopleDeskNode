@@ -36,7 +36,11 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.DECIMAL(4, 2),
         allowNull: false,
       },
-
+      isOvernight: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
       status: {
         type: DataTypes.ENUM('active', 'inactive', 'deleted'),
         defaultValue: 'active',
