@@ -179,7 +179,7 @@ const updateSchema = Joi.object({
         }),
 
     status: Joi.string()
-        .valid('active', 'inactive')
+        .valid('active', 'inactive', 'deleted')
         .messages({
             'any.only': 'BRANCH_STATUS_INVALID',
         }),

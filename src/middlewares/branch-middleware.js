@@ -7,8 +7,7 @@ export default {
 
     async checkCountryIdExist(req, res, next) {
         try {
-            const { countryId } = req.params;
-
+            const countryId = req.params.countryId ?? req.body.countryId;
             if (!countryId) {
                 return res.status(400).json({
                     success: false,
@@ -35,7 +34,7 @@ export default {
 
     async checkStateIdExist(req, res, next) {
         try {
-            const { stateId } = req.params;
+            const stateId = req.params.stateId ?? req.body.stateId;
 
             if (!stateId) {
                 return res.status(400).json({
@@ -63,7 +62,7 @@ export default {
 
     async checkCityIdExist(req, res, next) {
         try {
-            const { cityId } = req.params;
+            const cityId = req.params.cityId ?? req.body.cityId;
 
             if (!cityId) {
                 return res.status(400).json({

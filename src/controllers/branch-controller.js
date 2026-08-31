@@ -126,4 +126,29 @@ export default {
             next(error);
         }
     },
+    async getBranchStats(req, res, next) {
+        try {
+            const result = await branchRepository.getBranchStats(req);
+            if (result) {
+                return res.status(httpStatus.OK).json({ result, message: "Branches stats fetched successfully", status: true });
+            } else {
+                return res.status(httpStatus.BAD_REQUEST).json({ message: "bad request", status: false });
+            }
+        } catch (error) {
+            next(error);
+        }
+    },
+    async getEmployeeByBranch(req, res, next) {
+        try {
+            const result = await branchRepository.getEmployeeByBranch(req);
+            if (result) {
+                return res.status(httpStatus.OK).json({ result, message: "Branches stats fetched successfully", status: true });
+            } else {
+                return res.status(httpStatus.BAD_REQUEST).json({ message: "bad request", status: false });
+            }
+        } catch (error) {
+            next(error);
+        }
+    },
+
 };
