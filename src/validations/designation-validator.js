@@ -47,7 +47,7 @@ const createSchema = Joi.object({
         }),
 
     status: Joi.string()
-        .valid('active', 'inactive')
+        .valid('active', 'inactive', 'deleted')
         .default('active')
         .messages({
             'any.only': 'DESIGNATION_STATUS_INVALID',

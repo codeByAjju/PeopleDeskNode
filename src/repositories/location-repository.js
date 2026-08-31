@@ -244,6 +244,32 @@ export default {
     };
   },
 
+  async getLocationStats() {
+    try {
+      const [
+        totalLocations,
+        activeLocations,
+        inactiveLocations,
+        deletedLocations
+      ] = await Promise.all([
+        Location.count(),
+        Location.count({ where: { status: 'active' } }),
+        Location.count({ where: { status: 'inactive' } }),
+        Location.count({ where: { status: 'deleted' } })
+      ]);
+
+      return {
+        totalLocations,
+        activeLocations,
+        inactiveLocations,
+        deletedLocations
+      };
+    } catch (error) {
+      console.error('LocationRepository getLocationStats error:', error);
+      throw Error(error);
+    }
+  },
+
   async getLocationById(id) {
     try {
       const result = await Location.findByPk(id, {
