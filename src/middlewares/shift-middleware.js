@@ -56,10 +56,14 @@ export default {
     async checkShiftCodeExist(req, res, next) {
         try {
             const { code } = req.body;
-
+            if (!code) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Shift code is required',
+                });
+            }
             const result = await shiftRepository.findOne({
-                code,
-                status: 'active',
+                code
             });
 
             if (result) {
