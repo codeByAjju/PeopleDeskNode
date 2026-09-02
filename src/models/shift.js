@@ -56,6 +56,11 @@ export default (sequelize, DataTypes) => {
       foreignKey: 'shiftId',
       as: 'employees',
     });
+
+    Shift.hasMany(models.Attendance, {
+      foreignKey: 'shiftId',
+      as: 'attendances',
+    });
   };
 
   return Shift;

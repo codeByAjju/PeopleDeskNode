@@ -10,6 +10,7 @@ import branchRepository from './branch-repository.js';
 import locationRepository from './location-repository.js';
 import shiftRepository from './shift-repository.js';
 import employeeRepository from './employee-repository.js';
+import attendanceRepository from './attendance-repository.js';
 export default {
     mediaRepository,
     userRepository,
@@ -23,4 +24,5 @@ export default {
     locationRepository,
     shiftRepository,
     employeeRepository,
+    attendanceRepository,
 };

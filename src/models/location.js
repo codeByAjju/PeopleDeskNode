@@ -110,6 +110,10 @@ export default (sequelize, DataTypes) => {
       foreignKey: 'locationId',
       as: 'employees',
     });
+    Location.hasMany(models.Attendance, {
+      foreignKey: 'locationId',
+      as: 'attendances',
+    });
   };
 
   return Location;

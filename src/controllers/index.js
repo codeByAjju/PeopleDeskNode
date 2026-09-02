@@ -10,6 +10,7 @@ import branchController from './branch-controller.js';
 import locationController from './location-controller.js';
 import shiftController from './shift-controller.js';
 import employeeController from './employee-controller.js';
+import attendanceController from './attendance-controller.js'
 export default {
     userController,
     mediaController,
@@ -23,4 +24,5 @@ export default {
     locationController,
     shiftController,
     employeeController,
+    attendanceController
 };
