@@ -63,6 +63,11 @@ const createSchema = Joi.object({
             'number.positive': 'SHIFT_WORKING_HOURS_INVALID',
             'number.max': 'SHIFT_WORKING_HOURS_MAX_VALIDATION',
         }),
+    isOvernight: Joi.boolean()
+        .default(false)
+        .messages({
+            'boolean.base': 'SHIFT_IS_OVERNIGHT_INVALID',
+        }),
 
     status: Joi.string()
         .valid('active', 'inactive', 'deleted')
@@ -146,6 +151,11 @@ const updateSchema = Joi.object({
             'number.max': 'SHIFT_WORKING_HOURS_MAX_VALIDATION',
         }),
 
+    isOvernight: Joi.boolean()
+        .default(false)
+        .messages({
+            'boolean.base': 'SHIFT_IS_OVERNIGHT_INVALID',
+        }),
     status: Joi.string()
         .valid('active', 'inactive', 'deleted')
         .messages({
