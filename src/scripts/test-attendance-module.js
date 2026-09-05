@@ -25,6 +25,7 @@ const {
     Designation,
     Attendance,
     AttendanceAudit,
+    AttendancePolicy,
 } = models;
 
 const app = express();
@@ -57,6 +58,15 @@ async function runTests() {
     }
 
     try {
+        // --- Pre-flight: Deactivate any existing active policies so fallback (geofenceEnabled=false) is used ---
+        if (AttendancePolicy) {
+            await AttendancePolicy.update(
+                { isActive: false },
+                { where: { isActive: true } },
+            );
+            console.log('ℹ️  Deactivated existing active policies — fallback policy will be used during tests.');
+        }
+
         // --- 0. Setup Prerequisites (Country, State, City, Branch, Department, Designation, Location, Shifts, Users, Employees) ---
         console.log('\n--- 0. Setting up test fixtures ---');
         const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -293,6 +303,9 @@ async function runTests() {
             }),
         });
         const geofenceData = await geofenceRes.json();
+        if (geofenceRes.status !== 200) {
+            console.log('geofenceRes Error:', geofenceRes.status, geofenceData);
+        }
         assert(geofenceRes.status === 200, 'Other employee check-in created with location recorded');
         assert(geofenceData.result.checkInLatitude !== null, 'Coordinates stored for audit verification');
 
@@ -382,6 +395,7 @@ async function runTests() {
             checkOut: nextMorningDate,
             shift: overnightShift,
             workingDate: '2026-09-02',
+            policy: { gracePeriodMinutes: 0, overtimeEnabled: true, overtimeGraceMinutes: 0 },
         });
         assert(metricsOvernight.lateMinutes === 5, 'Overnight late minutes computed accurately (10:05 PM vs 10:00 PM start = 5 min)');
         assert(metricsOvernight.overtimeMinutes === 10, 'Overnight overtime computed accurately (06:10 AM vs 06:00 AM end = 10 min)');
@@ -532,6 +546,99 @@ async function runTests() {
         const afterRestoreData = await afterRestoreListRes.json();
         const foundRestored = afterRestoreData.result.attendances.find((a) => a.id === firstAttendanceId);
         assert(!!foundRestored, 'Restored attendance is present again in active attendance queries');
+
+        // ==========================================
+        // 8. Attendance Policy System Tests
+        // ==========================================
+        console.log('\n--- 8. Testing Attendance Policy System ---');
+
+        // Test 8.1: Employee cannot manage attendance policies
+        const empCreatePolicyRes = await fetch(`${baseUrl}/attendance-policy`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${employee1.token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name: 'Unauthorized Policy' }),
+        });
+        assert(empCreatePolicyRes.status === 403 || empCreatePolicyRes.status === 401, 'Employee policy creation rejected with 401/403 Forbidden');
+
+        // Test 8.2: Validation - halfDayMinutes exceeding fullDayMinutes rejected
+        const invalidPolicyRes = await fetch(`${baseUrl}/attendance-policy`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${adminAcc.token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: 'Invalid Policy',
+                halfDayMinutes: 600,
+                fullDayMinutes: 480,
+            }),
+        });
+        assert(invalidPolicyRes.status === 400, 'Invalid policy (halfDay > fullDay) rejected with 400 Bad Request');
+
+        // Test 8.3: Admin creates a valid active policy
+        const createPolicyRes = await fetch(`${baseUrl}/attendance-policy`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${adminAcc.token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: 'Standard Corporate Policy 2026',
+                gracePeriodMinutes: 10,
+                halfDayMinutes: 240,
+                fullDayMinutes: 480,
+                earlyLeaveGraceMinutes: 15,
+                overtimeEnabled: true,
+                overtimeGraceMinutes: 30,
+                locationRequired: false,
+                geofenceEnabled: true,
+            }),
+        });
+        assert(createPolicyRes.status === 201, 'POST /attendance-policy creates policy (HTTP 201)');
+        const createdPolicyData = await createPolicyRes.json();
+        const policyId = createdPolicyData.result.id;
+        assert(createdPolicyData.result.gracePeriodMinutes === 10, 'Grace period stored correctly');
+
+        // Test 8.4: GET /attendance-policy list & detail
+        const getPoliciesRes = await fetch(`${baseUrl}/attendance-policy`, {
+            headers: { Authorization: `Bearer ${adminAcc.token}` },
+        });
+        assert(getPoliciesRes.status === 200, 'GET /attendance-policy returns HTTP 200');
+
+        const getPolicyDetailRes = await fetch(`${baseUrl}/attendance-policy/${policyId}`, {
+            headers: { Authorization: `Bearer ${adminAcc.token}` },
+        });
+        assert(getPolicyDetailRes.status === 200, 'GET /attendance-policy/:id returns HTTP 200');
+
+        // Test 8.5: PUT /attendance-policy/:id update
+        const updatePolicyRes = await fetch(`${baseUrl}/attendance-policy/${policyId}`, {
+            method: 'PUT',
+            headers: {
+                Authorization: `Bearer ${adminAcc.token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: 'Updated Corporate Policy 2026',
+                gracePeriodMinutes: 12,
+            }),
+        });
+        assert(updatePolicyRes.status === 200, 'PUT /attendance-policy/:id returns HTTP 200');
+        const updatedPolicyData = await updatePolicyRes.json();
+        assert(updatedPolicyData.result.gracePeriodMinutes === 12, 'Updated grace period saved');
+
+        // Test 8.6: PATCH /attendance-policy/:id/activate
+        const activatePolicyRes = await fetch(`${baseUrl}/attendance-policy/${policyId}/activate`, {
+            method: 'PATCH',
+            headers: {
+                Authorization: `Bearer ${adminAcc.token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ reason: 'Re-activated policy' }),
+        });
+        assert(activatePolicyRes.status === 200, 'PATCH /attendance-policy/:id/activate returns HTTP 200');
 
         console.log(`\n========================================`);
         console.log(`🎉 ALL ${passedTests}/${totalTests} TESTS PASSED SUCCESSFULLY!`);

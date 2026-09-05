@@ -184,6 +184,71 @@ export default (sequelize, DataTypes) => {
                 },
             },
 
+            policyId: {
+                type: DataTypes.INTEGER,
+                allowNull: true,
+                references: {
+                    model: 'attendance_policies',
+                    key: 'id',
+                },
+            },
+
+            policyVersion: {
+                type: DataTypes.INTEGER,
+                allowNull: true,
+                defaultValue: 1,
+            },
+
+            policyGracePeriodMinutes: {
+                type: DataTypes.INTEGER,
+                allowNull: true,
+            },
+
+            policyHalfDayMinutes: {
+                type: DataTypes.INTEGER,
+                allowNull: true,
+            },
+
+            policyFullDayMinutes: {
+                type: DataTypes.INTEGER,
+                allowNull: true,
+            },
+
+            policyEarlyLeaveGraceMinutes: {
+                type: DataTypes.INTEGER,
+                allowNull: true,
+            },
+
+            policyOvertimeEnabled: {
+                type: DataTypes.BOOLEAN,
+                allowNull: true,
+            },
+
+            policyOvertimeGraceMinutes: {
+                type: DataTypes.INTEGER,
+                allowNull: true,
+            },
+
+            checkInAccuracy: {
+                type: DataTypes.DECIMAL(10, 2),
+                allowNull: true,
+            },
+
+            checkOutAccuracy: {
+                type: DataTypes.DECIMAL(10, 2),
+                allowNull: true,
+            },
+
+            checkInDistance: {
+                type: DataTypes.INTEGER,
+                allowNull: true,
+            },
+
+            checkOutDistance: {
+                type: DataTypes.INTEGER,
+                allowNull: true,
+            },
+
             statusRecord: {
                 type: DataTypes.ENUM('active', 'inactive', 'deleted'),
                 allowNull: false,
@@ -214,6 +279,9 @@ export default (sequelize, DataTypes) => {
                 },
                 {
                     fields: ['location_id'],
+                },
+                {
+                    fields: ['policy_id'],
                 },
                 {
                     fields: ['status_record'],
@@ -247,6 +315,13 @@ export default (sequelize, DataTypes) => {
             foreignKey: 'correctedBy',
             as: 'corrector',
         });
+
+        if (models.AttendancePolicy) {
+            Attendance.belongsTo(models.AttendancePolicy, {
+                foreignKey: 'policyId',
+                as: 'policy',
+            });
+        }
 
         if (models.AttendanceAudit) {
             Attendance.hasMany(models.AttendanceAudit, {

@@ -7,8 +7,9 @@ import {
     calculateShiftMetrics,
 } from '../utils/attendance-helper.js';
 import attendanceAuditRepository from './attendance-audit-repository.js';
+import attendancePolicyRepository from './attendance-policy-repository.js';
 
-const { Attendance, Employee, Shift, Location, Department, Designation, Branch, User, sequelize } = models;
+const { Attendance, Employee, Shift, Location, Department, Designation, Branch, User, AttendancePolicy, sequelize } = models;
 
 const includeAssociations = [
     {
@@ -23,6 +24,7 @@ const includeAssociations = [
     },
     { model: Shift, as: 'shift', attributes: ['id', 'name', 'code', 'startTime', 'endTime', 'workingHours', 'breakDuration', 'isOvernight'] },
     { model: Location, as: 'location', attributes: ['id', 'name', 'code', 'latitude', 'longitude', 'radiusInMeters'] },
+    { model: AttendancePolicy, as: 'policy', attributes: ['id', 'name', 'gracePeriodMinutes', 'halfDayMinutes', 'fullDayMinutes', 'earlyLeaveGraceMinutes', 'overtimeEnabled', 'overtimeGraceMinutes', 'locationRequired', 'geofenceEnabled', 'maxGpsAccuracyMeters'] },
     { model: User, as: 'approver', attributes: ['id', 'firstName', 'lastName', 'email', 'role'] },
     { model: User, as: 'corrector', attributes: ['id', 'firstName', 'lastName', 'email', 'role'] },
 ];
@@ -36,6 +38,44 @@ function sanitizeSource(req) {
         return rawSource;
     }
     return 'web';
+}
+
+/**
+ * Resolve attendance coordinates, falling back to employee location or static .env default
+ */
+function resolveCoordinates(employee, inputLat, inputLng) {
+    if (
+        inputLat !== undefined &&
+        inputLat !== null &&
+        inputLat !== '' &&
+        !isNaN(parseFloat(inputLat)) &&
+        inputLng !== undefined &&
+        inputLng !== null &&
+        inputLng !== '' &&
+        !isNaN(parseFloat(inputLng))
+    ) {
+        return {
+            latitude: parseFloat(inputLat),
+            longitude: parseFloat(inputLng),
+        };
+    }
+
+    // Fallback 1: Employee assigned location
+    if (employee?.location?.latitude && employee?.location?.longitude) {
+        return {
+            latitude: parseFloat(employee.location.latitude),
+            longitude: parseFloat(employee.location.longitude),
+        };
+    }
+
+    // Fallback 2: .env default office coordinates (or static default India coordinates)
+    const envLat = process.env.DEFAULT_OFFICE_LATITUDE ? parseFloat(process.env.DEFAULT_OFFICE_LATITUDE) : 28.613939;
+    const envLng = process.env.DEFAULT_OFFICE_LONGITUDE ? parseFloat(process.env.DEFAULT_OFFICE_LONGITUDE) : 77.209021;
+
+    return {
+        latitude: !isNaN(envLat) ? envLat : 28.613939,
+        longitude: !isNaN(envLng) ? envLng : 77.209021,
+    };
 }
 
 export default {
@@ -98,15 +138,20 @@ export default {
                 throw error;
             }
 
-            // Calculate shift metrics (late check-in calculation)
+            // Resolve policy for working date
+            const policy = req.effectivePolicy || await attendancePolicyRepository.getEffectivePolicy(workingDate, transaction);
+
+            // Calculate shift metrics using policy rules
             const metrics = calculateShiftMetrics({
                 checkIn: now,
                 checkOut: null,
                 shift,
                 workingDate,
+                policy,
             });
 
-            const { latitude, longitude, remarks } = req.body || {};
+            const { latitude, longitude, remarks, accuracy } = req.body || {};
+            const coords = resolveCoordinates(employee, latitude, longitude);
 
             const attendance = await Attendance.create(
                 {
@@ -121,11 +166,21 @@ export default {
                     overtimeMinutes: 0,
                     checkInIp: ip,
                     checkInUserAgent: userAgent,
-                    checkInLatitude: latitude ? parseFloat(latitude) : null,
-                    checkInLongitude: longitude ? parseFloat(longitude) : null,
+                    checkInLatitude: coords.latitude,
+                    checkInLongitude: coords.longitude,
                     checkInSource: source,
                     shiftId: shift?.id || null,
                     locationId: employee.locationId || null,
+                    policyId: policy?.id || null,
+                    policyVersion: 1,
+                    policyGracePeriodMinutes: policy?.gracePeriodMinutes ?? 15,
+                    policyHalfDayMinutes: policy?.halfDayMinutes ?? 240,
+                    policyFullDayMinutes: policy?.fullDayMinutes ?? 480,
+                    policyEarlyLeaveGraceMinutes: policy?.earlyLeaveGraceMinutes ?? 15,
+                    policyOvertimeEnabled: policy?.overtimeEnabled ?? false,
+                    policyOvertimeGraceMinutes: policy?.overtimeGraceMinutes ?? 30,
+                    checkInAccuracy: req.checkInAccuracy || (accuracy ? parseFloat(accuracy) : null),
+                    checkInDistance: req.geofenceDistance !== undefined ? req.geofenceDistance : null,
                     remarks: remarks || null,
                     statusRecord: 'active',
                 },
@@ -225,15 +280,27 @@ export default {
                 shift = await Shift.findByPk(employee.shiftId, { transaction });
             }
 
-            // Calculate shift metrics (durations, early leave, overtime)
+            // Resolve policy snapshot from attendance record or effective policy
+            const policySnapshot = {
+                gracePeriodMinutes: attendance.policyGracePeriodMinutes ?? 15,
+                halfDayMinutes: attendance.policyHalfDayMinutes ?? 240,
+                fullDayMinutes: attendance.policyFullDayMinutes ?? 480,
+                earlyLeaveGraceMinutes: attendance.policyEarlyLeaveGraceMinutes ?? 15,
+                overtimeEnabled: attendance.policyOvertimeEnabled ?? false,
+                overtimeGraceMinutes: attendance.policyOvertimeGraceMinutes ?? 30,
+            };
+
+            // Calculate shift metrics (durations, early leave, overtime) using policy snapshot
             const metrics = calculateShiftMetrics({
                 checkIn: attendance.checkIn,
                 checkOut: now,
                 shift,
                 workingDate: attendance.date,
+                policy: policySnapshot,
             });
 
-            const { latitude, longitude, remarks } = req.body || {};
+            const { latitude, longitude, remarks, accuracy } = req.body || {};
+            const coords = resolveCoordinates(employee, latitude, longitude);
 
             const beforeValues = attendance.toJSON();
 
@@ -251,8 +318,10 @@ export default {
                     status: metrics.status,
                     checkOutIp: ip,
                     checkOutUserAgent: userAgent,
-                    checkOutLatitude: latitude ? parseFloat(latitude) : null,
-                    checkOutLongitude: longitude ? parseFloat(longitude) : null,
+                    checkOutLatitude: coords.latitude,
+                    checkOutLongitude: coords.longitude,
+                    checkOutAccuracy: req.checkOutAccuracy || (accuracy ? parseFloat(accuracy) : null),
+                    checkOutDistance: req.geofenceDistance !== undefined ? req.geofenceDistance : null,
                     checkOutSource: source,
                     remarks: updatedRemarks,
                 },

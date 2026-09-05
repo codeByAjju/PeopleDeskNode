@@ -63,18 +63,20 @@ export default (sequelize, DataTypes) => {
 
       latitude: {
         type: DataTypes.DECIMAL(10, 8),
-        allowNull: true,
+        allowNull: false,
+        defaultValue: process.env.DEFAULT_OFFICE_LATITUDE ? parseFloat(process.env.DEFAULT_OFFICE_LATITUDE) : 28.613939,
       },
 
       longitude: {
         type: DataTypes.DECIMAL(11, 8),
-        allowNull: true,
+        allowNull: false,
+        defaultValue: process.env.DEFAULT_OFFICE_LONGITUDE ? parseFloat(process.env.DEFAULT_OFFICE_LONGITUDE) : 77.209021,
       },
 
       radiusInMeters: {
         type: DataTypes.INTEGER,
-        allowNull: true,
-        defaultValue: 500,
+        allowNull: false,
+        defaultValue: process.env.DEFAULT_OFFICE_RADIUS_METERS ? parseInt(process.env.DEFAULT_OFFICE_RADIUS_METERS, 10) : 1000,
         comment: 'Geofence radius in meters',
       },
 

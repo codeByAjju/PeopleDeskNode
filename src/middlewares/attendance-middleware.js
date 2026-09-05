@@ -1,8 +1,10 @@
 import httpStatus from 'http-status';
 import models from '../models/index.js';
+import attendancePolicyRepository from '../repositories/attendance-policy-repository.js';
 import {
     isValidCoordinates,
     calculateDistanceInMeters,
+    getWorkingDate,
 } from '../utils/attendance-helper.js';
 
 const { Employee, Shift, Location, Attendance } = models;
@@ -220,14 +222,32 @@ export default {
     },
 
     /**
-     * Validate check-in rules: GPS validation & geofence checks
+     * Validate check-in rules: Policy-driven GPS validation & geofence checks
      */
     async validateCheckInRules(req, res, next) {
         try {
-            const { latitude, longitude } = req.body || {};
+            const { latitude, longitude, accuracy } = req.body || {};
+            const employee = req.employee;
+            const now = new Date();
+            const workingDate = getWorkingDate(now, employee?.shift);
 
-            // Validate coordinates if provided
-            if (latitude !== undefined && latitude !== null || longitude !== undefined && longitude !== null) {
+            // 1. Resolve applicable policy for working date
+            const policy = await attendancePolicyRepository.getEffectivePolicy(workingDate);
+            req.effectivePolicy = policy;
+
+            const hasCoords = latitude !== undefined && latitude !== null && latitude !== '' &&
+                longitude !== undefined && longitude !== null && longitude !== '';
+
+            // 2. Check if policy requires location
+            if (policy.locationRequired && !hasCoords) {
+                return res.status(httpStatus.BAD_REQUEST).json({
+                    status: false,
+                    message: 'GPS location coordinates are required by attendance policy for check-in',
+                });
+            }
+
+            // 3. Validate coordinates if provided
+            if (hasCoords) {
                 if (!isValidCoordinates(latitude, longitude)) {
                     return res.status(httpStatus.UNPROCESSABLE_ENTITY).json({
                         status: false,
@@ -235,21 +255,43 @@ export default {
                     });
                 }
 
-                // Geofence check if employee location has coordinates configured
-                const employee = req.employee;
-                if (employee?.location?.latitude && employee?.location?.longitude) {
+                // 4. Check max GPS accuracy if configured and provided
+                if (accuracy !== undefined && accuracy !== null && accuracy !== '' && policy.maxGpsAccuracyMeters) {
+                    const accMeters = parseFloat(accuracy);
+                    if (!isNaN(accMeters) && accMeters > policy.maxGpsAccuracyMeters) {
+                        return res.status(httpStatus.BAD_REQUEST).json({
+                            status: false,
+                            message: `GPS accuracy is too low (${accMeters}m > allowed max ${policy.maxGpsAccuracyMeters}m)`,
+                        });
+                    }
+                    req.checkInAccuracy = accMeters;
+                }
+
+                // 5. Geofence check if geofencing is enabled in policy
+                const officeLat = employee?.location?.latitude
+                    ? parseFloat(employee.location.latitude)
+                    : (process.env.DEFAULT_OFFICE_LATITUDE ? parseFloat(process.env.DEFAULT_OFFICE_LATITUDE) : null);
+                const officeLng = employee?.location?.longitude
+                    ? parseFloat(employee.location.longitude)
+                    : (process.env.DEFAULT_OFFICE_LONGITUDE ? parseFloat(process.env.DEFAULT_OFFICE_LONGITUDE) : null);
+                const allowedRadius = employee?.location?.radiusInMeters
+                    || (process.env.DEFAULT_OFFICE_RADIUS_METERS ? parseInt(process.env.DEFAULT_OFFICE_RADIUS_METERS, 10) : 1000);
+
+                if (officeLat !== null && officeLng !== null && !isNaN(officeLat) && !isNaN(officeLng)) {
                     const distance = calculateDistanceInMeters(
-                        latitude,
-                        longitude,
-                        employee.location.latitude,
-                        employee.location.longitude,
+                        parseFloat(latitude),
+                        parseFloat(longitude),
+                        officeLat,
+                        officeLng,
                     );
-                    const allowedRadius = employee.location.radiusInMeters || 500;
                     req.geofenceDistance = distance;
                     req.isInsideGeofence = distance <= allowedRadius;
 
-                    if (!req.isInsideGeofence) {
-                        req.geofenceWarning = `Check-in outside allowed radius (${distance}m > ${allowedRadius}m)`;
+                    if (policy.geofenceEnabled && !req.isInsideGeofence) {
+                        return res.status(httpStatus.BAD_REQUEST).json({
+                            status: false,
+                            message: `Check-in location is outside allowed office geofence radius (${distance}m > allowed ${allowedRadius}m)`,
+                        });
                     }
                 }
             }
@@ -262,18 +304,45 @@ export default {
     },
 
     /**
-     * Validate check-out rules: Check coordinates
+     * Validate check-out rules: Policy-driven GPS validation
      */
     async validateCheckOutRules(req, res, next) {
         try {
-            const { latitude, longitude } = req.body || {};
+            const { latitude, longitude, accuracy } = req.body || {};
+            const attendanceRecord = req.attendanceRecord;
 
-            if (latitude !== undefined && latitude !== null || longitude !== undefined && longitude !== null) {
+            // Load policy from attendance snapshot or DB
+            const policy = attendanceRecord?.policy
+                || await attendancePolicyRepository.getEffectivePolicy(attendanceRecord?.date);
+            req.effectivePolicy = policy;
+
+            const hasCoords = latitude !== undefined && latitude !== null && latitude !== '' &&
+                longitude !== undefined && longitude !== null && longitude !== '';
+
+            if (policy.locationRequired && !hasCoords) {
+                return res.status(httpStatus.BAD_REQUEST).json({
+                    status: false,
+                    message: 'GPS location coordinates are required by attendance policy for check-out',
+                });
+            }
+
+            if (hasCoords) {
                 if (!isValidCoordinates(latitude, longitude)) {
                     return res.status(httpStatus.UNPROCESSABLE_ENTITY).json({
                         status: false,
                         message: 'Invalid GPS coordinates provided',
                     });
+                }
+
+                if (accuracy !== undefined && accuracy !== null && accuracy !== '' && policy.maxGpsAccuracyMeters) {
+                    const accMeters = parseFloat(accuracy);
+                    if (!isNaN(accMeters) && accMeters > policy.maxGpsAccuracyMeters) {
+                        return res.status(httpStatus.BAD_REQUEST).json({
+                            status: false,
+                            message: `GPS accuracy is too low (${accMeters}m > allowed max ${policy.maxGpsAccuracyMeters}m)`,
+                        });
+                    }
+                    req.checkOutAccuracy = accMeters;
                 }
             }
 

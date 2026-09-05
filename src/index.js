@@ -16,7 +16,34 @@ const app = express();
 
 app.set('port', process.env.PORT || 3001);
 
+// Pre-check for empty JSON body
+app.use((req, res, next) => {
+    if (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
+        if (req.headers['content-length'] === '0') {
+            req.body = {};
+        }
+    }
+    next();
+});
+
 app.use(bodyParser.json());
+
+// Gracefully handle JSON parse errors (e.g. empty string payload or malformed JSON)
+app.use((err, req, res, next) => {
+    if (err instanceof SyntaxError && (err.status === 400 || err.statusCode === 400) && 'body' in err) {
+        if (!req.body || (typeof err.message === 'string' && err.message.includes('Unexpected end of JSON input'))) {
+            req.body = {};
+            return next();
+        }
+        return res.status(400).json({
+            status: false,
+            message: 'Malformed JSON payload provided in request body',
+            errorMsg: err.message,
+        });
+    }
+    next(err);
+});
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 app.use('/public', express.static(path.join(__dirname, '../public')));

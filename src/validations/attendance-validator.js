@@ -1,15 +1,15 @@
 import Joi from 'joi';
 
 const checkInSchema = Joi.object({
-    latitude: Joi.number().min(-90).max(90).allow(null).optional(),
-    longitude: Joi.number().min(-180).max(180).allow(null).optional(),
+    latitude: Joi.number().min(-90).max(90).allow(null, '').empty('').optional(),
+    longitude: Joi.number().min(-180).max(180).allow(null, '').empty('').optional(),
     remarks: Joi.string().max(500).allow('', null).optional(),
     // Any employee-supplied employeeId/timestamps are rejected or stripped by schema / controller
 }).unknown(true);
 
 const checkOutSchema = Joi.object({
-    latitude: Joi.number().min(-90).max(90).allow(null).optional(),
-    longitude: Joi.number().min(-180).max(180).allow(null).optional(),
+    latitude: Joi.number().min(-90).max(90).allow(null, '').empty('').optional(),
+    longitude: Joi.number().min(-180).max(180).allow(null, '').empty('').optional(),
     remarks: Joi.string().max(500).allow('', null).optional(),
 }).unknown(true);
 

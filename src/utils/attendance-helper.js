@@ -171,19 +171,27 @@ export function getScheduledShiftBounds(workingDate, shift) {
 
 /**
  * Calculate shift metrics (lateMinutes, earlyLeaveMinutes, overtimeMinutes, workDuration, status)
+ * using policy rules and thresholds
  * @param {Object} params
  * @param {Date} params.checkIn
  * @param {Date|null} params.checkOut
  * @param {Object} [params.shift]
  * @param {String} params.workingDate
+ * @param {Object} [params.policy]
  * @returns {Object}
  */
-export function calculateShiftMetrics({ checkIn, checkOut, shift, workingDate }) {
+export function calculateShiftMetrics({ checkIn, checkOut, shift, workingDate, policy = {} }) {
     let lateMinutes = 0;
     let earlyLeaveMinutes = 0;
     let overtimeMinutes = 0;
     let workDuration = 0;
     let status = 'present';
+
+    const gracePeriodMinutes = policy?.gracePeriodMinutes ?? policy?.policyGracePeriodMinutes ?? 15;
+    const halfDayThreshold = policy?.halfDayMinutes ?? policy?.policyHalfDayMinutes ?? 240;
+    const earlyLeaveGraceMinutes = policy?.earlyLeaveGraceMinutes ?? policy?.policyEarlyLeaveGraceMinutes ?? 15;
+    const overtimeEnabled = policy?.overtimeEnabled ?? policy?.policyOvertimeEnabled ?? false;
+    const overtimeGraceMinutes = policy?.overtimeGraceMinutes ?? policy?.policyOvertimeGraceMinutes ?? 30;
 
     const checkInDate = checkIn ? new Date(checkIn) : null;
     const checkOutDate = checkOut ? new Date(checkOut) : null;
@@ -192,16 +200,23 @@ export function calculateShiftMetrics({ checkIn, checkOut, shift, workingDate })
         const { scheduledStart, scheduledEnd } = getScheduledShiftBounds(workingDate, shift);
 
         if (checkInDate) {
-            if (checkInDate > scheduledStart) {
+            const graceThreshold = new Date(scheduledStart.getTime() + gracePeriodMinutes * 60000);
+            if (checkInDate > graceThreshold) {
                 lateMinutes = Math.max(0, Math.floor((checkInDate.getTime() - scheduledStart.getTime()) / 60000));
             }
         }
 
         if (checkOutDate) {
-            if (checkOutDate < scheduledEnd) {
+            const earlyLeaveThreshold = new Date(scheduledEnd.getTime() - earlyLeaveGraceMinutes * 60000);
+            if (checkOutDate < earlyLeaveThreshold) {
                 earlyLeaveMinutes = Math.max(0, Math.floor((scheduledEnd.getTime() - checkOutDate.getTime()) / 60000));
-            } else if (checkOutDate > scheduledEnd) {
-                overtimeMinutes = Math.max(0, Math.floor((checkOutDate.getTime() - scheduledEnd.getTime()) / 60000));
+            }
+
+            if (overtimeEnabled) {
+                const overtimeThreshold = new Date(scheduledEnd.getTime() + overtimeGraceMinutes * 60000);
+                if (checkOutDate > overtimeThreshold) {
+                    overtimeMinutes = Math.max(0, Math.floor((checkOutDate.getTime() - scheduledEnd.getTime()) / 60000));
+                }
             }
         }
     }
@@ -209,11 +224,7 @@ export function calculateShiftMetrics({ checkIn, checkOut, shift, workingDate })
     if (checkInDate && checkOutDate) {
         workDuration = Math.max(0, Math.floor((checkOutDate.getTime() - checkInDate.getTime()) / 60000));
 
-        const requiredWorkingHours = shift?.workingHours ? parseFloat(shift.workingHours) : 8;
-        const targetMinutes = requiredWorkingHours * 60;
-        const halfDayMinutes = targetMinutes / 2;
-
-        if (workDuration < halfDayMinutes) {
+        if (workDuration < halfDayThreshold) {
             status = 'half_day';
         } else if (lateMinutes > 0) {
             status = 'late';
