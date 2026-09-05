@@ -7,6 +7,9 @@ import branchValidations from './branch-validator.js';
 import locationValidations from './location-validator.js';
 import shiftValidations from './shift-validator.js';
 import employeeValidations from './employee-validator.js';
+import attendanceValidations from './attendance-validator.js';
+import attendancePolicyValidations from './attendance-policy-validator.js';
+
 export default {
     userValidations,
     companyValidations,
@@ -17,4 +20,6 @@ export default {
     locationValidations,
     shiftValidations,
     employeeValidations,
+    attendanceValidations,
+    attendancePolicyValidations,
 };

@@ -10,10 +10,12 @@ import branch from './branch.js';
 import location from './location.js';
 import shift from './shift.js';
 import employee from './employee.js';
+import attendance from './attendance.js';
+import attendancePolicy from './attendance-policy.js';
 import HttpStatus from 'http-status';
 
 const register = (app) => {
-    app.use('/', [user, media, company, department, designation, country, state, city, branch, location, shift, employee]);
+    app.use('/', [user, media, company, department, designation, country, state, city, branch, location, shift, employee, attendance, attendancePolicy]);
     app.use((error, req, res, next) => {
         console.error(error);
         return res.status(HttpStatus.BAD_REQUEST).json({

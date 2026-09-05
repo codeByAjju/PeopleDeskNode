@@ -85,6 +85,45 @@ const createSchema = Joi.object({
             'string.max': 'POSTAL_CODE_MAX_VALIDATION',
         }),
 
+    latitude: Joi.number()
+        .min(-90)
+        .max(90)
+        .allow(null, '')
+        .empty('')
+        .default(process.env.DEFAULT_OFFICE_LATITUDE ? parseFloat(process.env.DEFAULT_OFFICE_LATITUDE) : 28.613939)
+        .optional()
+        .messages({
+            'number.base': 'LATITUDE_INVALID',
+            'number.min': 'LATITUDE_INVALID',
+            'number.max': 'LATITUDE_INVALID',
+        }),
+
+    longitude: Joi.number()
+        .min(-180)
+        .max(180)
+        .allow(null, '')
+        .empty('')
+        .default(process.env.DEFAULT_OFFICE_LONGITUDE ? parseFloat(process.env.DEFAULT_OFFICE_LONGITUDE) : 77.209021)
+        .optional()
+        .messages({
+            'number.base': 'LONGITUDE_INVALID',
+            'number.min': 'LONGITUDE_INVALID',
+            'number.max': 'LONGITUDE_INVALID',
+        }),
+
+    radiusInMeters: Joi.number()
+        .integer()
+        .positive()
+        .allow(null, '')
+        .empty('')
+        .default(process.env.DEFAULT_OFFICE_RADIUS_METERS ? parseInt(process.env.DEFAULT_OFFICE_RADIUS_METERS, 10) : 1000)
+        .optional()
+        .messages({
+            'number.base': 'RADIUS_INVALID',
+            'number.integer': 'RADIUS_INVALID',
+            'number.positive': 'RADIUS_INVALID',
+        }),
+
     status: Joi.string()
         .valid('active', 'inactive', 'deleted')
         .default('active')
@@ -187,6 +226,42 @@ const updateSchema = Joi.object({
         .messages({
             'string.min': 'POSTAL_CODE_MIN_VALIDATION',
             'string.max': 'POSTAL_CODE_MAX_VALIDATION',
+        }),
+
+    latitude: Joi.number()
+        .min(-90)
+        .max(90)
+        .allow(null, '')
+        .empty('')
+        .optional()
+        .messages({
+            'number.base': 'LATITUDE_INVALID',
+            'number.min': 'LATITUDE_INVALID',
+            'number.max': 'LATITUDE_INVALID',
+        }),
+
+    longitude: Joi.number()
+        .min(-180)
+        .max(180)
+        .allow(null, '')
+        .empty('')
+        .optional()
+        .messages({
+            'number.base': 'LONGITUDE_INVALID',
+            'number.min': 'LONGITUDE_INVALID',
+            'number.max': 'LONGITUDE_INVALID',
+        }),
+
+    radiusInMeters: Joi.number()
+        .integer()
+        .positive()
+        .allow(null, '')
+        .empty('')
+        .optional()
+        .messages({
+            'number.base': 'RADIUS_INVALID',
+            'number.integer': 'RADIUS_INVALID',
+            'number.positive': 'RADIUS_INVALID',
         }),
 
     status: Joi.string()

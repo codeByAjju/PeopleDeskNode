@@ -61,6 +61,25 @@ export default (sequelize, DataTypes) => {
         allowNull: true,
       },
 
+      latitude: {
+        type: DataTypes.DECIMAL(10, 8),
+        allowNull: false,
+        defaultValue: process.env.DEFAULT_OFFICE_LATITUDE ? parseFloat(process.env.DEFAULT_OFFICE_LATITUDE) : 28.613939,
+      },
+
+      longitude: {
+        type: DataTypes.DECIMAL(11, 8),
+        allowNull: false,
+        defaultValue: process.env.DEFAULT_OFFICE_LONGITUDE ? parseFloat(process.env.DEFAULT_OFFICE_LONGITUDE) : 77.209021,
+      },
+
+      radiusInMeters: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: process.env.DEFAULT_OFFICE_RADIUS_METERS ? parseInt(process.env.DEFAULT_OFFICE_RADIUS_METERS, 10) : 1000,
+        comment: 'Geofence radius in meters',
+      },
+
       status: {
         type: DataTypes.ENUM('active', 'inactive', 'deleted'),
         defaultValue: 'active',
@@ -109,6 +128,10 @@ export default (sequelize, DataTypes) => {
     Location.hasMany(models.Employee, {
       foreignKey: 'locationId',
       as: 'employees',
+    });
+    Location.hasMany(models.Attendance, {
+      foreignKey: 'locationId',
+      as: 'attendances',
     });
   };
 

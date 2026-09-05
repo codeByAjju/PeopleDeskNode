@@ -8,7 +8,24 @@ export default {
   async createLocation(req) {
     try {
       const { body } = req;
-      const result = await Location.create(body);
+      const defaultLat = process.env.DEFAULT_OFFICE_LATITUDE ? parseFloat(process.env.DEFAULT_OFFICE_LATITUDE) : 28.613939;
+      const defaultLng = process.env.DEFAULT_OFFICE_LONGITUDE ? parseFloat(process.env.DEFAULT_OFFICE_LONGITUDE) : 77.209021;
+      const defaultRadius = process.env.DEFAULT_OFFICE_RADIUS_METERS ? parseInt(process.env.DEFAULT_OFFICE_RADIUS_METERS, 10) : 1000;
+
+      const locationData = {
+        ...body,
+        latitude: body.latitude !== undefined && body.latitude !== null && body.latitude !== '' && !isNaN(parseFloat(body.latitude))
+          ? parseFloat(body.latitude)
+          : defaultLat,
+        longitude: body.longitude !== undefined && body.longitude !== null && body.longitude !== '' && !isNaN(parseFloat(body.longitude))
+          ? parseFloat(body.longitude)
+          : defaultLng,
+        radiusInMeters: body.radiusInMeters !== undefined && body.radiusInMeters !== null && body.radiusInMeters !== '' && !isNaN(parseInt(body.radiusInMeters, 10))
+          ? parseInt(body.radiusInMeters, 10)
+          : defaultRadius,
+      };
+
+      const result = await Location.create(locationData);
       return result;
     } catch (error) {
       console.error('LocationRepository createLocation error:', error);

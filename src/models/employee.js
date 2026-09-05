@@ -254,6 +254,16 @@ export default (sequelize, DataTypes) => {
       foreignKey: 'managerId',
       as: 'teamMembers',
     });
+    Employee.hasMany(models.Attendance, {
+      foreignKey: 'employeeId',
+      as: 'attendances',
+    });
+    if (models.AttendanceAudit) {
+      Employee.hasMany(models.AttendanceAudit, {
+        foreignKey: 'employeeId',
+        as: 'attendanceAudits',
+      });
+    }
   };
 
   return Employee;
