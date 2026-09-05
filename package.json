@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:attendance": "node src/scripts/test-attendance-module.js",
     "start": "node src/index.js",
     "dev": "npx nodemon src/index.js",
     "seed": "npx sequelize db:seed:all --seeders-path config/seeders",
